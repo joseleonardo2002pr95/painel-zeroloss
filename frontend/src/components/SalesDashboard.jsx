@@ -174,142 +174,151 @@ export default function SalesDashboard() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
-      
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem', animation: 'fadeIn 0.3s ease-out' }}>
+
+      {/* Status bar - Platform connection indicators */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '1rem', padding: '0 0.25rem' }}>
+        {Object.values(platformsData).map(p => (
+          <div key={p.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: p.color, boxShadow: `0 0 6px ${p.color}` }} />
+            <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '0.5px' }}>{p.label}</span>
+          </div>
+        ))}
+        <button onClick={handleConfigClick} style={{ marginLeft: 4, background: 'transparent', border: '1px solid #2a2a2a', color: 'var(--color-text-muted)', borderRadius: 6, padding: '3px 8px', fontSize: '0.6875rem', cursor: 'pointer' }}>
+          ⚙ Config
+        </button>
+      </div>
+
       {/* Hero Card - Receita de Hoje */}
-      <div className="card" style={{ 
-        position: 'relative', overflow: 'hidden', padding: '2.5rem 2rem', cursor: 'pointer',
-        background: 'linear-gradient(135deg, #0a0a0a 0%, #0f1f12 100%)',
-        border: '1px solid rgba(34, 197, 94, 0.15)'
-      }} onClick={handleConfigClick}>
+      <div style={{ 
+        position: 'relative', overflow: 'hidden', padding: '2rem 1.75rem',
+        background: '#0a0a0a',
+        border: '1px solid #1a1a1a',
+        borderRadius: 12
+      }}>
         {/* Top glow line */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent 0%, var(--color-green) 50%, transparent 100%)' }} />
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div className="live-dot" />
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-green)', letterSpacing: '2.5px', textTransform: 'uppercase' }}>Receita de Hoje</span>
+            <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Receita de Hoje</span>
           </div>
-          <div style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', fontWeight: 900, color: 'var(--color-green)', letterSpacing: '-2px', lineHeight: 1.1, textShadow: '0 0 40px rgba(34, 197, 94, 0.3)' }}>
+          <div style={{ fontSize: 'clamp(2.25rem, 5.5vw, 3.5rem)', fontWeight: 900, color: 'var(--color-green)', letterSpacing: '-1.5px', lineHeight: 1.05, textShadow: '0 0 40px rgba(34,197,94,0.3)', fontVariantNumeric: 'tabular-nums' }}>
             <AnimatedNumber value={totalValue} formatter={fmtMon} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-              Ontem: <strong style={{ color: 'var(--color-text)' }}>{fmtMon(offsetConfig.ontemVal || 0)}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 4 }}>
+            <span style={{ fontSize: '0.75rem', color: '#555' }}>
+              Ontem: <span style={{ color: '#888' }}>{fmtMon(offsetConfig.ontemVal || 0)}</span>
             </span>
             {(offsetConfig.mesVal || 0) > 0 && (
-              <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginLeft: 12 }}>
-                Mês: <strong style={{ color: 'var(--color-text)' }}>{fmtMon(volumeTotal)}</strong>
+              <span style={{ fontSize: '0.75rem', color: '#555' }}>
+                Mês: <span style={{ color: '#888' }}>{fmtMon(volumeTotal)}</span>
               </span>
             )}
           </div>
         </div>
       </div>
 
-      {/* Cards Superiores - sem Receita de Hoje (já no hero) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-        <SummaryCard 
-          title="Vendas Hoje" 
-          value={totalCount} 
-          formatter={(v) => Math.round(v).toString()}
-          icon={<ShoppingCart size={20} />} 
-          subtext={`Ontem: ${offsetConfig.ontemCount || 0} vendas`}
-        />
-        <SummaryCard 
-          title="Ticket Médio" 
-          value={totalTicket} 
-          formatter={fmtMon}
-          icon={<TrendingUp size={20} />} 
-          subtext={offsetConfig.ontemCount > 0 ? `Ontem: ${fmtMon((offsetConfig.ontemVal || 0) / offsetConfig.ontemCount)}` : ''}
-        />
-      </div>
+      {/* Stat tiles row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+        {/* Vendas Hoje */}
+        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 10, padding: '1.25rem 1.5rem' }}>
+          <div style={{ fontSize: '0.625rem', fontWeight: 700, color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 6 }}>Vendas Hoje</div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>
+            <AnimatedNumber value={totalCount} formatter={v => Math.round(v).toString()} />
+          </div>
+          <div style={{ fontSize: '0.6875rem', color: '#444', marginTop: 4 }}>Ontem: {offsetConfig.ontemCount || 0}</div>
+        </div>
 
-      {/* Gráfico de Origem das Vendas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-        <div className="card">
-          <h2 style={{ fontSize: '1.0625rem', fontWeight: 600, color: 'var(--color-text)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <CreditCard size={18} style={{ color: 'var(--color-green)' }} /> Origem das Vendas
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {Object.values(platformsData).map(p => {
-              // Adiciona o offset apenas na barra de PIX
-              const displayValue = p.label === 'XP (Pix)' ? p.value + offsetConfig.today : p.value;
-              const pct = totalValue > 0 ? (displayValue / totalValue) * 100 : 0;
-              
-              return (
-                <div key={p.label}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text)' }}>{p.label}</span>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text)' }}>{fmtMon(displayValue)}</span>
-                  </div>
-                  <div style={{ height: 6, background: 'var(--color-bg-elevated)', borderRadius: 99, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: p.color, borderRadius: 99, transition: 'width 0.5s ease-out' }} />
-                  </div>
-                </div>
-              );
-            })}
+        {/* Ticket Médio */}
+        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 10, padding: '1.25rem 1.5rem' }}>
+          <div style={{ fontSize: '0.625rem', fontWeight: 700, color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 6 }}>Ticket Médio</div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>
+            <AnimatedNumber value={totalTicket} formatter={fmtMon} />
+          </div>
+          <div style={{ fontSize: '0.6875rem', color: '#444', marginTop: 4 }}>
+            {offsetConfig.ontemCount > 0 ? `Ontem: ${fmtMon((offsetConfig.ontemVal || 0) / offsetConfig.ontemCount)}` : '\u00a0'}
           </div>
         </div>
       </div>
 
-      {/* Feed de Vendas ("Ao Vivo") na largura Total */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-             <h2 style={{ fontSize: '1.0625rem', fontWeight: 600, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Gift size={18} style={{ color: 'var(--color-green)' }} /> Feed de Transações
-             </h2>
-             <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--color-green)', fontWeight: 600 }}>
-               <Loader2 size={12} style={{ animation: 'spin 1.5s linear infinite' }} /> Aguardando novos webhooks...
-             </span>
-          </div>
-
-          <div style={{ overflowY: 'auto', padding: '0.5rem 0' }}>
-            {recentSales.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-                Nenhuma venda registrada ainda nessa sessão.
+      {/* Origem das Vendas - compact row */}
+      <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 10, padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ fontSize: '0.625rem', fontWeight: 700, color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Origem das Vendas</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          {Object.values(platformsData).map(p => {
+            const displayValue = p.label === 'XP (Pix)' ? p.value + offsetConfig.today : p.value;
+            const pct = totalValue > 0 ? Math.min(100, (displayValue / totalValue) * 100) : 0;
+            return (
+              <div key={p.label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: p.color, flexShrink: 0 }} />
+                <span style={{ fontSize: '0.8125rem', color: '#888', minWidth: 110 }}>{p.label}</span>
+                <div style={{ flex: 1, height: 4, background: '#1a1a1a', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: p.color, borderRadius: 99, transition: 'width 0.6s ease-out' }} />
+                </div>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text)', minWidth: 80, textAlign: 'right' }}>{fmtMon(displayValue)}</span>
               </div>
-            ) : (
-              [...recentSales].reverse().map((sale, i) => (
-                <div key={sale.id + '_' + i} style={{
-                  display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: '1rem',
-                  padding: '1rem 1.5rem',
-                  borderBottom: i === recentSales.length - 1 ? 'none' : '1px solid var(--color-border)',
-                  transition: 'background 0.2s',
-                  animation: 'fadeIn 0.4s ease-out'
-                }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-elevated)'}
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Feed de Transações - reference style */}
+      <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #1a1a1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Feed de Transações</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.6875rem', color: 'var(--color-green)' }}>
+            <div className="live-dot" style={{ width: 6, height: 6 }} /> Ao Vivo
+          </span>
+        </div>
+
+        <div style={{ overflowY: 'auto', maxHeight: 400 }}>
+          {recentSales.length === 0 ? (
+            <div style={{ padding: '2.5rem', textAlign: 'center', color: '#444', fontSize: '0.875rem' }}>
+              Aguardando transações...
+            </div>
+          ) : (
+            [...recentSales].reverse().map((sale, i) => (
+              <div key={sale.id + '_' + i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '0.9rem 1.5rem',
+                borderBottom: i < recentSales.length - 1 ? '1px solid #111' : 'none',
+                transition: 'background 0.15s',
+                animation: 'fadeIn 0.3s ease-out'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#111'}
               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-green)' }}>
-                  <ShoppingCart size={18} />
-                </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <span style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--color-text)' }}>{sale.name}</span>
-                    <span style={{ fontSize: '0.625rem', padding: '2px 6px', borderRadius: 4, background: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' }}>
+                    <span style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#e0e0e0' }}>{sale.name}</span>
+                    <span style={{ fontSize: '0.5625rem', padding: '1px 5px', borderRadius: 3, background: '#1a1a1a', color: '#555', fontWeight: 600 }}>
                       {sale.platform}
                     </span>
                   </div>
-                  <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>Comprou {sale.product}</span>
+                  <span style={{ fontSize: '0.75rem', color: '#444' }}>{sale.product}</span>
                 </div>
-                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-green)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    + {fmtMon(sale.value)}
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-green)', marginBottom: 2 }}>
+                    {fmtMon(sale.value)}
                     <button 
                       onClick={() => handleDeleteSale(sale)}
-                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 2 }}
-                      title="Remover Venda"
+                      style={{ background: 'transparent', border: 'none', color: '#333', cursor: 'pointer', padding: '0 0 0 6px', verticalAlign: 'middle' }}
+                      title="Remover"
+                      onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                      onMouseLeave={e => e.currentTarget.style.color = '#333'}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={13} />
                     </button>
                   </div>
-                  <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>{sale.time}</div>
+                  <div style={{ fontSize: '0.6875rem', color: '#444' }}>{sale.time}</div>
                 </div>
               </div>
             ))
-            )}
-          </div>
+          )}
         </div>
+      </div>
       
       {isModalOpen && (
         <ConfigModal 
