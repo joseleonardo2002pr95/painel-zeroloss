@@ -1,0 +1,32 @@
+[
+  {
+    "job_id": "ab35195c-64ae-45e4-885c-a2944f3d78d8",
+    "status": "canceled",
+    "target": "leads",
+    "total": 10302,
+    "sent": 913,
+    "failed": 379,
+    "started_at": "2026-03-29T14:08:53.261131",
+    "finished_at": "2026-03-29T14:18:07.875000"
+  },
+  {
+    "job_id": "08dc2a30-5ec0-4b48-b1eb-fd7205feae6b",
+    "status": "canceled",
+    "target": "leads",
+    "total": 10299,
+    "sent": 1410,
+    "failed": 570,
+    "started_at": "2026-03-29T13:57:22.940890",
+    "finished_at": "2026-03-29T14:18:12.917704"
+  },
+  {
+    "job_id": "e9a4889d-ef01-4b0a-801e-02b265e7ce56",
+    "status": "done",
+    "target": "leads",
+    "total": 10299,
+    "sent": 7274,
+    "failed": 3025,
+    "started_at": "2026-03-29T13:48:41.534218",
+    "finished_at": "2026-03-29T15:13:21.697132"
+  }
+]
