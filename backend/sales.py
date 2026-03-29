@@ -10,6 +10,8 @@ import os
 
 router = APIRouter()
 
+DEBUG_PAYLOADS = []
+
 # Fila assíncrona para enviar dados de vendas recebidos via webhook para os clientes SSE conectados
 sales_queue = asyncio.Queue()
 
@@ -118,6 +120,11 @@ async def delete_sale(sale_id: str):
 
 logger = logging.getLogger("uvicorn.error")
 
+@router.get("/api/debug")
+async def get_debug_payloads():
+    """Retorna os últimos webhooks recebidos na memória para debugar estruturas desconhecidas."""
+    return {"status": "ok", "payloads": DEBUG_PAYLOADS[::-1]}
+
 @router.get("/api/sales/stream")
 async def sales_stream(request: Request):
     """
@@ -167,6 +174,9 @@ async def perfectpay_webhook(request: Request):
         except:
             payload = dict(await request.form())
             
+        DEBUG_PAYLOADS.append({"platform": "PerfectPay", "payload": payload})
+        if len(DEBUG_PAYLOADS) > 10: DEBUG_PAYLOADS.pop(0)
+
         status = str(payload.get("sale_status_enum", ""))
         
         # O 2 significa "Aprovada" na PerfectPay
@@ -226,7 +236,17 @@ async def payt_webhook(request: Request):
     Status de aprovação precisa ser validado.
     """
     try:
-        raw_body = await request.json()
+        # Payt manda form-data ou json
+        content_type = request.headers.get('content-type', '')
+        if 'application/json' in content_type:
+            raw_body = await request.json()
+        else:
+            form = await request.form()
+            raw_body = {k: v for k, v in form.items()}
+            
+        DEBUG_PAYLOADS.append({"platform": "Payt", "payload": raw_body})
+        if len(DEBUG_PAYLOADS) > 10: DEBUG_PAYLOADS.pop(0)
+            
         body = raw_body.get("data", raw_body) # Fallback para caso venha encapsulado
         
         status = str(body.get("status", raw_body.get("event", ""))).lower()
