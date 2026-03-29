@@ -74,6 +74,17 @@ async def perfectpay_webhook(request: Request):
         
         val = payload.get("sale_amount", 0)
         try:
+            # Tenta pegar apenas o valor da comissão recebido (tipo produtor ou afiliado)
+            commissions = payload.get("commission", [])
+            for c in commissions:
+                # Na PerfectPay, a taxa deles costuma ser affiliation_type_enum 0.
+                if c.get("name") != "PerfectPay" and c.get("affiliation_type_enum") != 0:
+                    val = c.get("commission_amount", val)
+                    break
+        except Exception:
+            pass
+            
+        try:
             val = float(val)
         except:
             val = 0.0
