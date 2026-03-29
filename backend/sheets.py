@@ -55,6 +55,8 @@ def _fetch_from_sheets() -> dict:
     if env_creds and env_creds.strip():
         try:
             creds_dict = json.loads(env_creds)
+            if "private_key" in creds_dict:
+                creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
             creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
         except Exception as e:
             raise Exception(f"Erro ao parsear o JSON da variável GOOGLE_CREDENTIALS_JSON. Formato inválido: {e}")
