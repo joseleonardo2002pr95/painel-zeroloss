@@ -253,7 +253,7 @@ async def payt_webhook(request: Request):
         if status not in ["approved", "paid", "aprovada", "1", "2", "charge.approved", "transaction.approved"]:
             return {"message": "Ignorado - Status não aprovado"}
             
-        tx_id = body.get("transaction", body.get("id", body.get("transaction_id", "NA")))
+        tx_id = body.get("transaction_id", body.get("id", "textoNA"))
         
         customer = body.get("customer", body.get("buyer", {}))
         name = customer.get("name", customer.get("full_name", body.get("customer_name", "Cliente")))
