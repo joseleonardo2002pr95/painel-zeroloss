@@ -37,49 +37,80 @@ function App() {
 
       {/* ── Sidebar ── */}
       <aside className={`sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
-        <div style={{ padding: '1.25rem 1.25rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+        {/* Brand */}
+        <div style={{ padding: '1.5rem 1.25rem 1.25rem', borderBottom: '1px solid var(--color-border)', position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div style={{
-              width: 32, height: 32, background: 'var(--color-green)', borderRadius: 8,
+              width: 36, height: 36,
+              background: 'linear-gradient(135deg, var(--color-green), #16a34a)',
+              borderRadius: 10,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 12px rgba(34,197,94,0.4)',
+              boxShadow: '0 0 16px rgba(34,197,94,0.35)',
+              flexShrink: 0,
             }}>
-              <Zap size={18} color="#000" strokeWidth={2.5} />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
             </div>
-            <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-text)' }}>
-              Painel <span style={{ color: 'var(--color-green)' }}>ZeroLoss</span>
-            </span>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--color-text)', letterSpacing: '-0.3px' }}>
+                Dash <span style={{ color: 'var(--color-green)' }}>Circle</span>
+              </div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', marginTop: 1 }}>Painel de Vendas</div>
+            </div>
           </div>
           <button onClick={() => setSidebarOpen(false)} className="sidebar-close-btn"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 4 }}>
-            <X size={18} />
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 4, position: 'absolute', top: 16, right: 12 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
-        <nav style={{ flex: 1, padding: '0.5rem 0.75rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <nav style={{ flex: 1, padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Category: Visão Geral */}
+          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase', padding: '0 0.5rem', marginBottom: 4, marginTop: 4 }}>
+            Visão Geral
+          </div>
           <a href="#" className={`nav-item ${activeTab === 'aovivo' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setActiveTab('aovivo'); setSidebarOpen(false); }}>
-            <Activity size={16} /> Ao Vivo
-            <div className="live-dot" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Ao Vivo
+            <div className="live-dot" style={{ marginLeft: 'auto' }} />
           </a>
+
+          {/* Category: Operações */}
+          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase', padding: '0 0.5rem', marginBottom: 4, marginTop: 12 }}>
+            Operações
+          </div>
           <a href="#" className={`nav-item ${activeTab === 'disparos' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setActiveTab('disparos'); setSidebarOpen(false); }}>
-            <Send size={16} /> Disparos
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+            Disparos
           </a>
-          <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); }}>
-            <Settings size={16} /> Configurações
-          </a>
+
+          {/* Category: Sistema */}
+          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase', padding: '0 0.5rem', marginBottom: 4, marginTop: 12 }}>
+            Sistema
+          </div>
+          <button className="nav-item" onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+            {theme === 'dark'
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            }
+            {theme === 'dark' ? 'Modo Claro' : 'Modo Escuro'}
+          </button>
         </nav>
 
-        <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-            <UserCircle size={28} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
-            <div>
-              <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text)' }}>Admin</p>
-              <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>Service Cloud</p>
-            </div>
+        {/* User footer */}
+        <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e, #16a34a)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#000' }}>A</span>
           </div>
-          <button onClick={toggleTheme} title="Mudar tema" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          <div>
+            <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text)' }}>Admin</p>
+            <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>Circle Digital</p>
+          </div>
         </div>
       </aside>
 
@@ -96,7 +127,7 @@ function App() {
         }}>
           <button onClick={() => setSidebarOpen(true)} className="hamburger-btn"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 4 }}>
-            <Menu size={20} />
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
           <span style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--color-text-subtle)' }}>
             Gerenciador de Campanhas

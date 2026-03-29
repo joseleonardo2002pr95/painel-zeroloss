@@ -176,37 +176,31 @@ export default function SalesDashboard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
       
-      {/* Metricas Vaidosas (Volume Total e Meta) */}
+      {/* Hero Card - Receita de Hoje */}
       <div className="card" style={{ 
-        position: 'relative', overflow: 'hidden', padding: '2.5rem 2rem', 
-        background: 'linear-gradient(to bottom right, var(--color-bg-card), #111827)',
-        border: '1px solid #1f2937'
-      }}>
-        {/* Subtle green glow at the top */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, var(--color-green), transparent)', opacity: 0.5 }} />
+        position: 'relative', overflow: 'hidden', padding: '2.5rem 2rem', cursor: 'pointer',
+        background: 'linear-gradient(135deg, #0a0a0a 0%, #0f1f12 100%)',
+        border: '1px solid rgba(34, 197, 94, 0.15)'
+      }} onClick={handleConfigClick}>
+        {/* Top glow line */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent 0%, var(--color-green) 50%, transparent 100%)' }} />
         
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--color-green)', boxShadow: '0 0 8px var(--color-green)' }} />
-              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Volume Total</span>
-            </div>
-            <div style={{ fontSize: '3.5rem', fontWeight: 800, color: 'var(--color-green)', letterSpacing: '-1.5px', textShadow: '0 0 30px rgba(34, 197, 94, 0.25)' }}>
-              {fmtMon(volumeTotal)}
-            </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--color-green)', boxShadow: '0 0 8px var(--color-green)', animation: 'pulse-red 2s infinite' }} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-green)', letterSpacing: '2.5px', textTransform: 'uppercase' }}>Receita de Hoje</span>
           </div>
-          
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#f59e0b', boxShadow: '0 0 8px #f59e0b' }} />
-              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>
-                Falta para {metaAlvo >= 1000000 ? `${metaAlvo / 1000000}MM` : fmtMon(metaAlvo)}
+          <div style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', fontWeight: 900, color: 'var(--color-green)', letterSpacing: '-2px', lineHeight: 1.1, textShadow: '0 0 40px rgba(34, 197, 94, 0.3)' }}>
+            <AnimatedNumber value={totalValue} formatter={fmtMon} />
+          </div>
+          {(offsetConfig.mesVal || 0) > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+              <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+                Volume do Mês: <strong style={{ color: 'var(--color-text)' }}>{fmtMon(volumeTotal)}</strong>
               </span>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>
-              {fmtMon(faltaMeta)}
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
