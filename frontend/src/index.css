@@ -169,6 +169,25 @@
     padding: 1.25rem 1.5rem;
     display: flex;
     align-items: center;
+    justify-content: center;
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #ef4444;
+    margin-left: auto;
+    animation: pulse-red 1.5s infinite;
+  }
+
+  @keyframes pulse-red {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  }
+
+  .stat-card {
     justify-content: space-between;
     transition: border-color 0.2s, box-shadow 0.2s;
   }

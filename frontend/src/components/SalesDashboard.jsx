@@ -3,7 +3,7 @@ import { ShoppingCart, DollarSign, TrendingUp, CreditCard, Gift, Loader2, Trash2
 
 export default function SalesDashboard() {
   const [summary, setSummary] = useState({ today: 0, count: 0, ticket: 0 });
-  const [offsetConfig, setOffsetConfig] = useState({ today: 0, count: 0, ontemVal: 0, ontemCount: 0 });
+  const [offsetConfig, setOffsetConfig] = useState({ today: 0, count: 0, ontemVal: 0, ontemCount: 0, mesVal: 0, metaGoal: 1000000 });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [platformsData, setPlatformsData] = useState({
     PerfectPay: { value: 0, color: '#3b82f6', label: 'PerfectPay' },
@@ -37,7 +37,10 @@ export default function SalesDashboard() {
     const ontemV = parseFloat(localStorage.getItem('sales_ontem_value') || '0');
     const ontemC = parseInt(localStorage.getItem('sales_ontem_count') || '0');
     
-    setOffsetConfig({ today: offsetVal, count: offsetCount, ontemVal: ontemV, ontemCount: ontemC });
+    const mesV = parseFloat(localStorage.getItem('sales_mes_value') || '0');
+    const metaG = parseFloat(localStorage.getItem('sales_meta_goal') || '1000000');
+    
+    setOffsetConfig({ today: offsetVal, count: offsetCount, ontemVal: ontemV, ontemCount: ontemC, mesVal: mesV, metaGoal: metaG });
 
     // Puxa as vendas de hoje que estão salvas no banco de dados do servidor
     fetch('/api/sales/today')
@@ -159,6 +162,10 @@ export default function SalesDashboard() {
   const totalValue = summary.today + offsetConfig.today;
   const totalCount = summary.count + offsetConfig.count;
   const totalTicket = totalCount > 0 ? totalValue / totalCount : 0;
+  
+  const volumeTotal = (offsetConfig.mesVal || 0) + totalValue;
+  const metaAlvo = offsetConfig.metaGoal || 1000000;
+  const faltaMeta = Math.max(0, metaAlvo - volumeTotal);
 
   const fmtMon = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
@@ -169,6 +176,40 @@ export default function SalesDashboard() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '1rem', animation: 'fadeIn 0.3s ease-out' }}>
       
+      {/* Metricas Vaidosas (Volume Total e Meta) */}
+      <div className="card" style={{ 
+        position: 'relative', overflow: 'hidden', padding: '2.5rem 2rem', 
+        background: 'linear-gradient(to bottom right, var(--color-bg-card), #111827)',
+        border: '1px solid #1f2937'
+      }}>
+        {/* Subtle green glow at the top */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, transparent, var(--color-green), transparent)', opacity: 0.5 }} />
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--color-green)', boxShadow: '0 0 8px var(--color-green)' }} />
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>Volume Total</span>
+            </div>
+            <div style={{ fontSize: '3.5rem', fontWeight: 800, color: 'var(--color-green)', letterSpacing: '-1.5px', textShadow: '0 0 30px rgba(34, 197, 94, 0.25)' }}>
+              {fmtMon(volumeTotal)}
+            </div>
+          </div>
+          
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#f59e0b', boxShadow: '0 0 8px #f59e0b' }} />
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '2px', textTransform: 'uppercase' }}>
+                Falta para {metaAlvo >= 1000000 ? `${metaAlvo / 1000000}MM` : fmtMon(metaAlvo)}
+              </span>
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>
+              {fmtMon(faltaMeta)}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Cards Superiores */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
         <SummaryCard 
@@ -358,6 +399,9 @@ function ConfigModal({ onClose, offsetConfig, setOffsetConfig }) {
   
   const [ontemVal, setOntemVal] = useState((offsetConfig.ontemVal || 0).toString());
   const [ontemCount, setOntemCount] = useState((offsetConfig.ontemCount || 0).toString());
+  
+  const [mesVal, setMesVal] = useState((offsetConfig.mesVal || 0).toString());
+  const [metaGoal, setMetaGoal] = useState((offsetConfig.metaGoal || 1000000).toString());
 
   const [manPlat, setManPlat] = useState('XP Empresas (Pix)');
   const [manName, setManName] = useState('');
@@ -372,12 +416,16 @@ function ConfigModal({ onClose, offsetConfig, setOffsetConfig }) {
     const c = parseInt(countPix) || 0;
     const ov = parseFloat(ontemVal) || 0;
     const oc = parseInt(ontemCount) || 0;
+    const mv = parseFloat(mesVal) || 0;
+    const mg = parseFloat(metaGoal) || 1000000;
     
-    setOffsetConfig({ today: v, count: c, ontemVal: ov, ontemCount: oc });
+    setOffsetConfig({ today: v, count: c, ontemVal: ov, ontemCount: oc, mesVal: mv, metaGoal: mg });
     localStorage.setItem('sales_offset_value', v.toString());
     localStorage.setItem('sales_offset_count', c.toString());
     localStorage.setItem('sales_ontem_value', ov.toString());
     localStorage.setItem('sales_ontem_count', oc.toString());
+    localStorage.setItem('sales_mes_value', mv.toString());
+    localStorage.setItem('sales_meta_goal', mg.toString());
     onClose();
   };
 
@@ -462,6 +510,18 @@ function ConfigModal({ onClose, offsetConfig, setOffsetConfig }) {
                 <div>
                   <label style={{fontSize: 14, color: 'var(--color-text)', fontWeight: 600}}>Quantidade de ONTEM</label>
                   <input type="number" value={ontemCount} onChange={e => setOntemCount(e.target.value)} className="input" placeholder="Ex: 20" style={{marginTop: 4}} />
+                </div>
+
+                <hr style={{borderColor: 'var(--color-border)', margin: '8px 0'}} />
+                
+                <h4 style={{fontSize: 14, color: 'var(--color-text)', marginTop: 4, fontWeight: 700}}>Métricas de Vaidade</h4>
+                <div>
+                  <label style={{fontSize: 14, color: 'var(--color-text-muted)'}}>Faturamento Total Base Mês (R$)</label>
+                  <input type="number" value={mesVal} onChange={e => setMesVal(e.target.value)} className="input" placeholder="Ex: 50000.00" style={{marginTop: 4}} />
+                </div>
+                <div>
+                  <label style={{fontSize: 14, color: 'var(--color-text-muted)'}}>Meta Personalizada (R$)</label>
+                  <input type="number" value={metaGoal} onChange={e => setMetaGoal(e.target.value)} className="input" placeholder="Ex: 1000000" style={{marginTop: 4}} />
                 </div>
 
                 <button className="btn-primary" onClick={handleSaveOffset} style={{ marginTop: 8 }}>Salvar Configuração</button>

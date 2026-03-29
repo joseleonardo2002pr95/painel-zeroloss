@@ -59,6 +59,7 @@ function App() {
         <nav style={{ flex: 1, padding: '0.5rem 0.75rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
           <a href="#" className={`nav-item ${activeTab === 'aovivo' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setActiveTab('aovivo'); setSidebarOpen(false); }}>
             <Activity size={16} /> Ao Vivo
+            <div className="live-dot" />
           </a>
           <a href="#" className={`nav-item ${activeTab === 'disparos' ? 'active' : ''}`} onClick={(e) => { e.preventDefault(); setActiveTab('disparos'); setSidebarOpen(false); }}>
             <Send size={16} /> Disparos
