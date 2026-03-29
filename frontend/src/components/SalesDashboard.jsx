@@ -121,7 +121,7 @@ export default function SalesDashboard() {
     if (!window.confirm(`Tem certeza que deseja apagar a venda de ${sale.name} no valor de R$${sale.value.toFixed(2)}?`)) return;
     
     try {
-      const res = await fetch(`/api/sales/${sale.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/sales/${encodeURIComponent(sale.id)}`, { method: 'DELETE' });
       if (!res.ok) alert("Erro ao apagar venda!");
     } catch(e) {
       console.error(e);
