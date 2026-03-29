@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { ShoppingCart, DollarSign, TrendingUp, CreditCard, Gift, Loader2, Trash2 } from 'lucide-react';
 
 export default function SalesDashboard() {
