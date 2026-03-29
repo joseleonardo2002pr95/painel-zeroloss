@@ -261,9 +261,21 @@ async def payt_webhook(request: Request):
         product_obj = body.get("product", {})
         product = product_obj.get("name", body.get("product_name", "Produto Oculto"))
         
-        val = body.get("price", body.get("amount", body.get("value", 0.0)))
+        # Payt value - Extrai do array "commission" (Produtor) ou "transaction.total_price". Valores vêm em centavos.
+        val = 0.0
+        commissions = body.get("commission", [])
+        if isinstance(commissions, list):
+            for c in commissions:
+                if c.get("type", "") == "producer":
+                    val = c.get("amount", 0.0)
+                    break
+                    
+        if val == 0.0:
+            transaction_data = body.get("transaction", {})
+            val = transaction_data.get("total_price", body.get("price", body.get("amount", body.get("value", 0.0))))
+            
         try:
-            val = float(val)
+            val = float(val) / 100.0
         except:
             val = 0.0
             
