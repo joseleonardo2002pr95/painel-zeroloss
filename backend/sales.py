@@ -230,10 +230,10 @@ async def payt_webhook(request: Request):
         body = raw_body.get("data", raw_body) # Fallback para caso venha encapsulado
         
         status = str(body.get("status", raw_body.get("event", ""))).lower()
-        if status not in ["approved", "paid", "aprovada", "1", "2"]:
-            pass
+        if status not in ["approved", "paid", "aprovada", "1", "2", "charge.approved", "transaction.approved"]:
+            return {"message": "Ignorado - Status não aprovado"}
             
-        tx_id = body.get("transaction", body.get("id", body.get("transaction_id", "N/A")))
+        tx_id = body.get("transaction", body.get("id", body.get("transaction_id", "NA")))
         
         customer = body.get("customer", body.get("buyer", {}))
         name = customer.get("name", customer.get("full_name", body.get("customer_name", "Cliente")))
@@ -277,26 +277,36 @@ async def kirvano_webhook(request: Request):
         status = str(body.get("status", raw_body.get("event", ""))).lower()
         # Kirvano usualmente manda 'approved'
         if status not in ["approved", "paid", "aprovado", "charge.approved", "transaction.approved"]:
-            pass
+            return {"message": "Ignorado - Status não aprovado"}
             
-        tx_id = body.get("transaction_id", body.get("id", "N/A"))
+        tx_id = body.get("transaction_id", body.get("id", "textoNA"))
         
         buyer = body.get("buyer", body.get("customer", {}))
         name = buyer.get("name", buyer.get("full_name", body.get("customer_name", "Cliente")))
         
-        product_obj = body.get("product", {})
-        product = product_obj.get("name", body.get("product_name", "Produto Oculto"))
+        product_name = "Produto Oculto"
+        products_list = body.get("products", [])
+        if products_list and isinstance(products_list, list):
+            product_name = products_list[0].get("name", "Produto Oculto")
+        else:
+            product_obj = body.get("product", {})
+            product_name = product_obj.get("name", body.get("product_name", "Produto Oculto"))
         
-        val = body.get("amount", body.get("value", body.get("price", 0.0)))
+        # Kirvano value - Cuidado: "R$ 169,80"
+        val = body.get("commission", body.get("net_amount", body.get("total_price", body.get("amount", body.get("value", body.get("price", 0.0))))))
         try:
-            val = float(val)
+            if isinstance(val, str):
+                val_clean = val.replace("R$", "").replace(".", "").replace(",", ".").strip()
+                val = float(val_clean)
+            else:
+                val = float(val)
         except:
             val = 0.0
             
         sale_event = {
             "id": f"kirvano_{tx_id}",
             "name": name,
-            "product": product,
+            "product": product_name,
             "value": val,
             "platform": "Kirvano"
         }
