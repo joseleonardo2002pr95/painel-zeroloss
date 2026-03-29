@@ -271,7 +271,7 @@ export default function SalesDashboard() {
           </span>
         </div>
 
-        <div style={{ overflowY: 'auto', maxHeight: 400 }}>
+        <div style={{ overflowY: 'scroll', maxHeight: 480, scrollbarWidth: 'thin', scrollbarColor: 'var(--color-border-hover) transparent' }}>
           {recentSales.length === 0 ? (
             <div style={{ padding: '2.5rem', textAlign: 'center', color: '#444', fontSize: '0.875rem' }}>
               Aguardando transações...
