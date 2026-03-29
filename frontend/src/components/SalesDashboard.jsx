@@ -18,20 +18,43 @@ export default function SalesDashboard() {
     // const audio = new Audio('/cash.mp3'); audio.play().catch(e=>e);
   };
 
-  // Carrega offset do localStorage
+  // Carrega offset do localStorage e Vendas do BD
   useEffect(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     const savedDate = localStorage.getItem('sales_offset_date');
+    let offsetVal = 0;
+    let offsetCount = 0;
+
     if (savedDate === todayStr) {
-      const savedVal = parseFloat(localStorage.getItem('sales_offset_value') || '0');
-      const savedCount = parseInt(localStorage.getItem('sales_offset_count') || '0');
-      setOffsetConfig({ today: savedVal, count: savedCount });
+      offsetVal = parseFloat(localStorage.getItem('sales_offset_value') || '0');
+      offsetCount = parseInt(localStorage.getItem('sales_offset_count') || '0');
+      setOffsetConfig({ today: offsetVal, count: offsetCount });
     } else {
-      // Limpa os offsets de ontem
       localStorage.removeItem('sales_offset_value');
       localStorage.removeItem('sales_offset_count');
       localStorage.setItem('sales_offset_date', todayStr);
     }
+
+    // Puxa as vendas de hoje que estão salvas no banco de dados do servidor
+    fetch('/api/sales/today')
+      .then(r => r.json())
+      .then(data => {
+        if (data.sales) {
+          const dbSales = data.sales;
+          const totalVal = dbSales.reduce((acc, curr) => acc + curr.value, 0);
+          
+          setSummary({
+             today: totalVal,
+             count: dbSales.length,
+             ticket: dbSales.length > 0 ? (totalVal / dbSales.length) : 0
+          });
+
+          // Pega as últimas 50 para o feed
+          const last50 = dbSales.slice(-50).map(s => ({...s, time: new Date(s.created_at + 'Z').toLocaleTimeString()}));
+          setRecentSales(last50);
+        }
+      })
+      .catch(e => console.error("Erro ao puxar vendas do dia:", e));
   }, []);
 
   useEffect(() => {

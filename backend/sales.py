@@ -4,14 +4,85 @@ from sse_starlette.sse import EventSourceResponse
 import asyncio
 import json
 import logging
+import sqlite3
+import datetime
+import os
 
 router = APIRouter()
 
 # Fila assíncrona para enviar dados de vendas recebidos via webhook para os clientes SSE conectados
 sales_queue = asyncio.Queue()
 
-# Histórico em memória das últimas vendas para quem se conectar agora (opcional, mantendo max 50)
-recent_sales = []
+DB_PATH = os.path.join(os.path.dirname(__file__), "sales.db")
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sales (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            product TEXT,
+            value REAL,
+            platform TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def save_sale(sale_event: dict):
+    """Salva a venda no SQLite ignorando duplicatas pelo ID da transação"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT OR IGNORE INTO sales (id, name, product, value, platform)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (
+            sale_event["id"], 
+            sale_event.get("name", ""), 
+            sale_event.get("product", ""), 
+            float(sale_event.get("value", 0.0)), 
+            sale_event.get("platform", "")
+        ))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Erro ao salvar no BD: {e}")
+
+@router.get("/api/sales/today")
+def get_sales_today():
+    """Retorna todas as vendas ocorridas desde a meia-noite (UTC/Server Time)."""
+    conn = sqlite3.connect(DB_PATH)
+    # Definindo a meia noite de hoje
+    today_start = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT id, name, product, value, platform, created_at 
+        FROM sales 
+        WHERE created_at >= ? 
+        ORDER BY created_at ASC
+    ''', (today_start,))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    sales = []
+    for r in rows:
+        sales.append({
+            "id": r[0],
+            "name": r[1],
+            "product": r[2],
+            "value": r[3],
+            "platform": r[4],
+            "created_at": r[5]
+        })
+        
+    return {"sales": sales}
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -97,11 +168,8 @@ async def perfectpay_webhook(request: Request):
             "platform": "PerfectPay"
         }
         
+        save_sale(sale_event)
         await sales_queue.put(sale_event)
-        
-        recent_sales.append(sale_event)
-        if len(recent_sales) > 50:
-            recent_sales.pop(0)
 
         logger.info(f"[PerfectPay] Venda Aprovada Webhook recebida: {name} comprou {product} por {val}")
 
@@ -148,9 +216,8 @@ async def payt_webhook(request: Request):
             "platform": "Payt"
         }
         
+        save_sale(sale_event)
         await sales_queue.put(sale_event)
-        recent_sales.append(sale_event)
-        if len(recent_sales) > 50: recent_sales.pop(0)
 
         logger.info(f"[Payt] Venda Recebida: {name} - {product} - {val}")
         return {"status": "ok"}
@@ -195,9 +262,8 @@ async def kirvano_webhook(request: Request):
             "platform": "Kirvano"
         }
         
+        save_sale(sale_event)
         await sales_queue.put(sale_event)
-        recent_sales.append(sale_event)
-        if len(recent_sales) > 50: recent_sales.pop(0)
 
         logger.info(f"[Kirvano] Venda Recebida: {name} - {product} - {val}")
         return {"status": "ok"}
@@ -234,9 +300,8 @@ async def xp_webhook(request: Request):
             "platform": "XP Empresas (Pix)"
         }
         
+        save_sale(sale_event)
         await sales_queue.put(sale_event)
-        recent_sales.append(sale_event)
-        if len(recent_sales) > 50: recent_sales.pop(0)
 
         logger.info(f"[XP Pix] Transferência Recebida: {name} - {val}")
         return {"status": "ok"}
@@ -262,9 +327,9 @@ async def manual_sale(data: ManualSalePayload):
         "value": data.value,
         "platform": data.platform
     }
+    
+    save_sale(sale_event)
     await sales_queue.put(sale_event)
-    recent_sales.append(sale_event)
-    if len(recent_sales) > 50: recent_sales.pop(0)
 
     logger.info(f"[Venda Manual] {data.name} - {data.value} - {data.platform}")
     return {"status": "success"}
