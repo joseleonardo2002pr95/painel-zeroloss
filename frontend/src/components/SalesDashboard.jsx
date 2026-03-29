@@ -3,7 +3,7 @@ import { ShoppingCart, DollarSign, TrendingUp, CreditCard, Gift, Loader2, Trash2
 
 export default function SalesDashboard() {
   const [summary, setSummary] = useState({ today: 0, count: 0, ticket: 0 });
-  const [offsetConfig, setOffsetConfig] = useState({ today: 0, count: 0 });
+  const [offsetConfig, setOffsetConfig] = useState({ today: 0, count: 0, ontemVal: 0, ontemCount: 0 });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [platformsData, setPlatformsData] = useState({
     PerfectPay: { value: 0, color: '#3b82f6', label: 'PerfectPay' },
@@ -28,12 +28,16 @@ export default function SalesDashboard() {
     if (savedDate === todayStr) {
       offsetVal = parseFloat(localStorage.getItem('sales_offset_value') || '0');
       offsetCount = parseInt(localStorage.getItem('sales_offset_count') || '0');
-      setOffsetConfig({ today: offsetVal, count: offsetCount });
     } else {
       localStorage.removeItem('sales_offset_value');
       localStorage.removeItem('sales_offset_count');
       localStorage.setItem('sales_offset_date', todayStr);
     }
+    
+    const ontemV = parseFloat(localStorage.getItem('sales_ontem_value') || '0');
+    const ontemC = parseInt(localStorage.getItem('sales_ontem_count') || '0');
+    
+    setOffsetConfig({ today: offsetVal, count: offsetCount, ontemVal: ontemV, ontemCount: ontemC });
 
     // Puxa as vendas de hoje que estão salvas no banco de dados do servidor
     fetch('/api/sales/today')
@@ -151,28 +155,31 @@ export default function SalesDashboard() {
           icon={<DollarSign size={20} />} 
           main 
           onTitleClick={handleConfigClick}
+          subtext={`Ontem: ${fmtMon(offsetConfig.ontemVal || 0)}`}
         />
         <SummaryCard 
           title="Vendas Hoje" 
           value={totalCount} 
           formatter={(v) => Math.round(v).toString()}
           icon={<ShoppingCart size={20} />} 
+          subtext={`Ontem: ${offsetConfig.ontemCount || 0} vendas`}
         />
         <SummaryCard 
           title="Ticket Médio" 
           value={totalTicket} 
           formatter={fmtMon}
           icon={<TrendingUp size={20} />} 
+          subtext=""
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', alignItems: 'start' }}>
-        {/* Divisão por Plataforma */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <h2 style={{ fontSize: '1.0625rem', fontWeight: 600, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+      {/* Gráfico de Origem das Vendas */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+        <div className="card">
+          <h2 style={{ fontSize: '1.0625rem', fontWeight: 600, color: 'var(--color-text)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 6 }}>
             <CreditCard size={18} style={{ color: 'var(--color-green)' }} /> Origem das Vendas
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {Object.values(platformsData).map(p => {
               // Adiciona o offset apenas na barra de PIX
               const displayValue = p.label === 'XP (Pix)' ? p.value + offsetConfig.today : p.value;
@@ -192,9 +199,10 @@ export default function SalesDashboard() {
             })}
           </div>
         </div>
+      </div>
 
-        {/* Feed de Vendas ("Ao Vivo") */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: 500 }}>
+      {/* Feed de Vendas ("Ao Vivo") na largura Total */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
              <h2 style={{ fontSize: '1.0625rem', fontWeight: 600, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Gift size={18} style={{ color: 'var(--color-green)' }} /> Feed de Transações
@@ -251,7 +259,7 @@ export default function SalesDashboard() {
             )}
           </div>
         </div>
-      </div>
+      
       {isModalOpen && (
         <ConfigModal 
           onClose={() => setIsModalOpen(false)} 
@@ -295,135 +303,149 @@ function AnimatedNumber({ value, formatter }) {
   return <span>{formatter ? formatter(displayValue) : displayValue}</span>;
 }
 
-function SummaryCard({ title, value, formatter, icon, main, onTitleClick }) {
+function SummaryCard({ title, value, formatter, icon, main, onTitleClick, subtext }) {
   return (
-    <div className="card" style={{ 
-      display: 'flex', flexDirection: 'column', gap: 8,
-      border: main ? '1px solid var(--color-green)' : '1px solid var(--color-border)',
-      background: main ? 'linear-gradient(145deg, var(--color-bg-card), rgba(34, 197, 94, 0.05))' : 'var(--color-bg-card)',
-      boxShadow: main ? '0 0 20px rgba(34, 197, 94, 0.08)' : 'none'
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', color: main ? 'var(--color-green)' : 'var(--color-text-muted)' }}>
-        <span 
-          onClick={onTitleClick}
-          style={{ fontSize: '0.8125rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: onTitleClick ? 'pointer' : 'default' }}
-          title={onTitleClick ? "Clique duas vezes para ajustar o valor inicial do dia" : ""}
-        >
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', border: main ? '1px solid var(--color-green)' : '1px solid var(--color-border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: onTitleClick ? 'pointer' : 'default' }} onClick={onTitleClick}>
+        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: main ? 'var(--color-green)' : 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
           {title}
         </span>
-        {icon}
+        <div style={{ color: main ? 'var(--color-green)' : 'var(--color-text-muted)' }}>
+          {icon}
+        </div>
       </div>
-      <span style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-text)' }}>
-        <AnimatedNumber value={value} formatter={formatter} />
-      </span>
+      <div>
+        <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>
+          <AnimatedNumber value={value} formatter={formatter} />
+        </div>
+        {subtext && (
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
+            {subtext}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
 function ConfigModal({ onClose, offsetConfig, setOffsetConfig }) {
   const [tab, setTab] = useState('offset');
-  const [valPix, setValPix] = useState(offsetConfig.today ? offsetConfig.today.toString() : "");
-  const [countPix, setCountPix] = useState(offsetConfig.count ? offsetConfig.count.toString() : "");
+  const [valPix, setValPix] = useState(offsetConfig.today.toString());
+  const [countPix, setCountPix] = useState(offsetConfig.count.toString());
+  
+  const [ontemVal, setOntemVal] = useState((offsetConfig.ontemVal || 0).toString());
+  const [ontemCount, setOntemCount] = useState((offsetConfig.ontemCount || 0).toString());
 
-  const [manName, setManName] = useState("");
-  const [manProd, setManProd] = useState("");
-  const [manVal, setManVal] = useState("");
-  const [manPlat, setManPlat] = useState("XP Empresas (Pix)");
+  const [manPlat, setManPlat] = useState('XP Empresas (Pix)');
+  const [manName, setManName] = useState('');
+  const [manProd, setManProd] = useState('');
+  const [manVal, setManVal] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  const [bulkJson, setBulkJson] = useState('');
 
   const handleSaveOffset = () => {
-    const valStr = valPix.trim() === "" ? "0" : valPix;
-    const countStr = countPix.trim() === "" ? "0" : countPix;
-    const val = parseFloat(valStr.replace(',', '.')) || 0;
-    const count = parseInt(countStr) || 0;
-    setOffsetConfig({ today: val, count: count });
-    const todayStr = new Date().toISOString().split('T')[0];
-    localStorage.setItem('sales_offset_date', todayStr);
-    localStorage.setItem('sales_offset_value', val);
-    localStorage.setItem('sales_offset_count', count);
+    const v = parseFloat(valPix) || 0;
+    const c = parseInt(countPix) || 0;
+    const ov = parseFloat(ontemVal) || 0;
+    const oc = parseInt(ontemCount) || 0;
+    
+    setOffsetConfig({ today: v, count: c, ontemVal: ov, ontemCount: oc });
+    localStorage.setItem('sales_offset_value', v.toString());
+    localStorage.setItem('sales_offset_count', c.toString());
+    localStorage.setItem('sales_ontem_value', ov.toString());
+    localStorage.setItem('sales_ontem_count', oc.toString());
     onClose();
   };
 
   const handleManualSale = async () => {
-    if (!manName || !manVal) return alert("Preencha Nome e Valor");
+    if (!manName || !manVal) return alert('Preencha nome e valor');
     setIsLoading(true);
     try {
-      const res = await fetch('/api/sales/manual', {
+      await fetch('/api/sales/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: manName,
-          product: manProd || "Produto Manual",
-          value: parseFloat(manVal.replace(',', '.')) || 0,
+          product: manProd || 'Produto',
+          value: parseFloat(manVal.replace(',', '.')),
           platform: manPlat
         })
       });
-      if (res.ok) {
-        setManName("");
-        setManVal("");
-        setManProd("");
-        alert("Venda enviada com sucesso! Feche a janela para ver.");
-      } else {
-        alert("Erro ao enviar venda.");
+      setManName(''); setManVal('');
+      alert('Venda lançada!');
+    } catch(e) { console.error(e); }
+    setIsLoading(false);
+  };
+  
+  const handleBulkImport = async () => {
+    try {
+      const list = JSON.parse(bulkJson);
+      if (!Array.isArray(list)) return alert('Deve ser uma lista (Array) de JSON.');
+      setIsLoading(true);
+      
+      for (const item of list) {
+         await fetch('/api/sales/manual', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: item.name || 'Cliente',
+              product: item.product || 'Produto',
+              value: parseFloat(item.value) || 0.0,
+              platform: item.platform || 'Kirvano'
+            })
+         });
+         // Pausa curta para não engasgar o servidor
+         await new Promise(r => setTimeout(r, 200));
       }
+      alert(`Foram importadas ${list.length} vendas com sucesso!`);
+      setBulkJson('');
     } catch (e) {
-      alert("Erro de conexão.");
-    } finally {
-      setIsLoading(false);
+      alert('Erro de JSON inválido ou falha na importação.');
     }
+    setIsLoading(false);
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)'
-    }}>
-      <div className="card" style={{ width: '100%', maxWidth: 450, padding: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)' }}>
-          <button 
-            onClick={() => setTab('offset')}
-            style={{ flex: 1, padding: 16, background: tab === 'offset' ? 'var(--color-bg-elevated)' : 'transparent', border: 'none', color: tab === 'offset' ? 'var(--color-text)' : 'var(--color-text-muted)', fontWeight: 600, cursor: 'pointer' }}
-          >
-            Caixa Inicial (Pix)
-          </button>
-          <button 
-            onClick={() => setTab('manual')}
-            style={{ flex: 1, padding: 16, background: tab === 'manual' ? 'var(--color-bg-elevated)' : 'transparent', border: 'none', color: tab === 'manual' ? 'var(--color-text)' : 'var(--color-text-muted)', fontWeight: 600, cursor: 'pointer' }}
-          >
-            Lançamento Manual
-          </button>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}>
+      <div className="card" style={{ width: 450, maxWidth: '90vw', padding: '2rem' }}>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Maleta de Operações</h2>
+        
+        <div style={{ display: 'flex', gap: 8, marginBottom: '1.5rem', borderBottom: '1px solid var(--color-border)' }}>
+          <button onClick={() => setTab('offset')} style={{ padding: '8px 12px', background: 'transparent', border: 'none', color: tab === 'offset' ? 'var(--color-green)' : 'var(--color-text-muted)', borderBottom: tab === 'offset' ? '2px solid var(--color-green)' : '2px solid transparent', cursor: 'pointer', fontWeight: 600 }}>Cofre Base</button>
+          <button onClick={() => setTab('manual')} style={{ padding: '8px 12px', background: 'transparent', border: 'none', color: tab === 'manual' ? 'var(--color-green)' : 'var(--color-text-muted)', borderBottom: tab === 'manual' ? '2px solid var(--color-green)' : '2px solid transparent', cursor: 'pointer', fontWeight: 600 }}>Lançador</button>
+          <button onClick={() => setTab('bulk')} style={{ padding: '8px 12px', background: 'transparent', border: 'none', color: tab === 'bulk' ? 'var(--color-green)' : 'var(--color-text-muted)', borderBottom: tab === 'bulk' ? '2px solid var(--color-green)' : '2px solid transparent', cursor: 'pointer', fontWeight: 600 }}>Lote Oculto</button>
         </div>
 
-        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {tab === 'offset' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {tab === 'offset' && (
              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{fontSize: 13, color: 'var(--color-text-muted)'}}>Estipule abaixo os valores que devem ser mantidos como base protegida no seu navegador.</p>
                 <div>
-                  <label style={{fontSize: 14, color: 'var(--color-text-muted)'}}>Valor total de Pix já recebido hoje (ex: 1500.50)</label>
-                  <input 
-                    type="text" 
-                    value={valPix} 
-                    onChange={e => setValPix(e.target.value)} 
-                    className="input" 
-                    placeholder="0.00"
-                    style={{marginTop: 4}}
-                  />
+                  <label style={{fontSize: 14, color: 'var(--color-green)', fontWeight: 600}}>Receita Oculta Hoje (R$)</label>
+                  <input type="number" value={valPix} onChange={e => setValPix(e.target.value)} className="input" placeholder="0.00" style={{marginTop: 4}} />
+                </div>
+                <div>
+                  <label style={{fontSize: 14, color: 'var(--color-green)', fontWeight: 600}}>Quantidade Oculta Hoje</label>
+                  <input type="number" value={countPix} onChange={e => setCountPix(e.target.value)} className="input" placeholder="0" style={{marginTop: 4}} />
                 </div>
                 
+                <hr style={{borderColor: 'var(--color-border)', margin: '8px 0'}} />
+                
                 <div>
-                  <label style={{fontSize: 14, color: 'var(--color-text-muted)'}}>Quantidade de vendas via Pix hoje</label>
-                  <input 
-                    type="number" 
-                    value={countPix} 
-                    onChange={e => setCountPix(e.target.value)} 
-                    className="input" 
-                    placeholder="0"
-                    style={{marginTop: 4}}
-                  />
+                  <label style={{fontSize: 14, color: 'var(--color-text)', fontWeight: 600}}>Receita de ONTEM (R$)</label>
+                  <input type="number" value={ontemVal} onChange={e => setOntemVal(e.target.value)} className="input" placeholder="Ex: 5000.00" style={{marginTop: 4}} />
+                </div>
+                <div>
+                  <label style={{fontSize: 14, color: 'var(--color-text)', fontWeight: 600}}>Quantidade de ONTEM</label>
+                  <input type="number" value={ontemCount} onChange={e => setOntemCount(e.target.value)} className="input" placeholder="Ex: 20" style={{marginTop: 4}} />
                 </div>
 
                 <button className="btn-primary" onClick={handleSaveOffset} style={{ marginTop: 8 }}>Salvar Configuração</button>
              </div>
-          ) : (
+          )}
+          
+          {tab === 'manual' && (
              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
                   <label style={{fontSize: 14, color: 'var(--color-text-muted)'}}>Plataforma</label>
@@ -452,6 +474,22 @@ function ConfigModal({ onClose, offsetConfig, setOffsetConfig }) {
 
                 <button className="btn-primary" onClick={handleManualSale} disabled={isLoading} style={{ marginTop: 8 }}>
                   {isLoading ? 'Enviando...' : 'Fazer Lançamento'}
+                </button>
+             </div>
+          )}
+
+          {tab === 'bulk' && (
+             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <p style={{fontSize: 13, color: 'var(--color-text-muted)'}}>Cole a Lista Mágica (Formato JSON) para replicar vendas passadas automaticamente.</p>
+                <textarea 
+                  className="input" 
+                  style={{ height: 150, fontFamily: 'monospace', fontSize: 12, resize: 'vertical' }}
+                  placeholder={'[\n  {"name": "Fulano", "value": 150.00, "platform": "Kirvano", "product": "VIP"}\n]'}
+                  value={bulkJson}
+                  onChange={e => setBulkJson(e.target.value)}
+                />
+                <button className="btn-primary" onClick={handleBulkImport} disabled={isLoading} style={{ marginTop: 8 }}>
+                  {isLoading ? 'Forjando Vendas...' : 'Importar Lote de Vendas'}
                 </button>
              </div>
           )}
