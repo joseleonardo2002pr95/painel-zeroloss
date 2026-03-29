@@ -56,6 +56,16 @@ export default function SalesDashboard() {
           // Pega as últimas 50 para o feed
           const last50 = dbSales.slice(-50).map(s => ({...s, time: new Date(s.created_at + 'Z').toLocaleTimeString()}));
           setRecentSales(last50);
+          
+          setPlatformsData(prev => {
+             const plt = { ...prev };
+             dbSales.forEach(s => {
+                const pName = s.platform;
+                const pKey = Object.keys(plt).find(k => k.toLowerCase() === pName?.toLowerCase()) || 'Kirvano';
+                plt[pKey].value += s.value;
+             });
+             return plt;
+          });
         }
       })
       .catch(e => console.error("Erro ao puxar vendas do dia:", e));
@@ -88,13 +98,13 @@ export default function SalesDashboard() {
       });
 
       setPlatformsData(prev => {
-        const plat = data.platform;
-        if (!prev[plat]) return prev; // Ignore desconhecidos
+        const platName = data.platform || 'Kirvano';
+        const pKey = Object.keys(prev).find(k => k.toLowerCase() === platName.toLowerCase()) || 'Kirvano';
         return {
           ...prev,
-          [plat]: {
-            ...prev[plat],
-            value: prev[plat].value + data.value
+          [pKey]: {
+            ...prev[pKey],
+            value: prev[pKey].value + data.value
           }
         };
       });
@@ -114,6 +124,19 @@ export default function SalesDashboard() {
           today: newToday,
           count: newCount,
           ticket: newCount > 0 ? newToday / newCount : 0
+        };
+      });
+
+      setPlatformsData(prev => {
+        const platName = data.platform || 'Kirvano';
+        const pKey = Object.keys(prev).find(k => k.toLowerCase() === platName.toLowerCase()) || 'Kirvano';
+        
+        return {
+          ...prev,
+          [pKey]: {
+            ...prev[pKey],
+            value: Math.max(0, prev[pKey].value - data.value)
+          }
         };
       });
     });
