@@ -48,32 +48,33 @@ async def sales_stream(request: Request):
 @router.post("/webhooks/perfectpay")
 async def perfectpay_webhook(request: Request):
     """
-    Recebe o Webhook da PerfectPay.
-    Geralmente enviam form-data no PerfectPay, então pegamos via form().
-    A documentação oficial pede para checar sale_status_enum == 2 (Aprovada) 
-    ou tratamos status == 'Aprovada'.
+    Recebe o Webhook da PerfectPay (Formato JSON).
     """
     try:
-        # A PerfectPay envia os dados como application/x-www-form-urlencoded
-        form = await request.form()
-        
-        # Filtra apenas transações aprovadas/pagas
-        status = form.get("sale_status_enum")
+        # Tenta pegar JSON primeiro
+        try:
+            payload = await request.json()
+        except:
+            payload = dict(await request.form())
+            
+        status = str(payload.get("sale_status_enum", ""))
         
         # O 2 significa "Aprovada" na PerfectPay
         if status != "2": 
             return {"message": "Ignorado - não aprovado"}
             
-        # Extrai os dados essenciais para o Dashboard
-        # Campos variam, mas costumam mandar: sale_amount, customer_name, product_name, code
-        tx_id = form.get("code", "N/A")
-        name = form.get("customer_name", "Cliente")
-        product = form.get("product_name", "Produto Oculto")
+        tx_id = payload.get("code", "N/A")
         
-        # O valor na PP vem com vírgula as vezes ou string, precisa tratar
-        val_str = form.get("sale_amount", "0")
+        # O Nome e Produto agora vêm em sub-objetos
+        customer = payload.get("customer", {})
+        name = customer.get("full_name", payload.get("customer_name", "Cliente"))
+        
+        product_obj = payload.get("product", {})
+        product = product_obj.get("name", payload.get("product_name", "Produto Oculto"))
+        
+        val = payload.get("sale_amount", 0)
         try:
-            val = float(str(val_str).replace(',', '.'))
+            val = float(val)
         except:
             val = 0.0
 
@@ -85,10 +86,8 @@ async def perfectpay_webhook(request: Request):
             "platform": "PerfectPay"
         }
         
-        # Envia a notificação pro frontend
         await sales_queue.put(sale_event)
         
-        # Adiciona no histórico rápido da memória
         recent_sales.append(sale_event)
         if len(recent_sales) > 50:
             recent_sales.pop(0)
@@ -99,7 +98,6 @@ async def perfectpay_webhook(request: Request):
         
     except Exception as e:
         logger.error(f"Erro no webhook da PerfectPay: {e}")
-        # Mesmo com erro de parse, retorna 200 pra plataforma não ficar tentando enviar repetidamente
         return {"status": "error", "message": str(e)}
 
 @router.post("/webhooks/payt")
@@ -110,22 +108,17 @@ async def payt_webhook(request: Request):
     Status de aprovação precisa ser validado.
     """
     try:
-        body = await request.json()
+        raw_body = await request.json()
+        body = raw_body.get("data", raw_body) # Fallback para caso venha encapsulado
         
-        # Normalmente o status aprovado na payt vem como 'approved', 'paid', ou id de status.
-        # Vamos assumir 'approved' ou 'aprovada' como base. Pode precisar ajuste baseado no log real
-        status = str(body.get("status", "")).lower()
+        status = str(body.get("status", raw_body.get("event", ""))).lower()
         if status not in ["approved", "paid", "aprovada", "1", "2"]:
-            # Se a payt manda 1 para aprovado, está coberto.
-            # logger.info(f"Payt ignorado (status: {status})")
             pass
             
-        # Tenta extrair dados do body (Exemplo genérico, varia conforme o payload real da Payt)
-        tx_id = body.get("transaction", body.get("id", "N/A"))
+        tx_id = body.get("transaction", body.get("id", body.get("transaction_id", "N/A")))
         
-        # Payt costuma mandar customer como objeto
-        customer = body.get("customer", {})
-        name = customer.get("name", body.get("customer_name", "Cliente"))
+        customer = body.get("customer", body.get("buyer", {}))
+        name = customer.get("name", customer.get("full_name", body.get("customer_name", "Cliente")))
         
         product_obj = body.get("product", {})
         product = product_obj.get("name", body.get("product_name", "Produto Oculto"))
@@ -161,17 +154,18 @@ async def kirvano_webhook(request: Request):
     Geralmente envia JSON com transação aprovada.
     """
     try:
-        body = await request.json()
+        raw_body = await request.json()
+        body = raw_body.get("data", raw_body)
         
-        status = str(body.get("status", "")).lower()
+        status = str(body.get("status", raw_body.get("event", ""))).lower()
         # Kirvano usualmente manda 'approved'
-        if status not in ["approved", "paid", "aprovado"]:
+        if status not in ["approved", "paid", "aprovado", "charge.approved", "transaction.approved"]:
             pass
             
         tx_id = body.get("transaction_id", body.get("id", "N/A"))
         
-        buyer = body.get("buyer", {})
-        name = buyer.get("name", body.get("customer_name", "Cliente"))
+        buyer = body.get("buyer", body.get("customer", {}))
+        name = buyer.get("name", buyer.get("full_name", body.get("customer_name", "Cliente")))
         
         product_obj = body.get("product", {})
         product = product_obj.get("name", body.get("product_name", "Produto Oculto"))
