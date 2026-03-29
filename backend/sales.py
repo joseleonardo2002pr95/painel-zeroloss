@@ -84,6 +84,38 @@ def get_sales_today():
         
     return {"sales": sales}
 
+@router.delete("/api/sales/{sale_id}")
+async def delete_sale(sale_id: str):
+    """Remove uma venda do banco de dados e avisa o frontend SSE."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM sales WHERE id = ?", (sale_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Sale not found")
+            
+        sale_value = row[0]
+        cursor.execute("DELETE FROM sales WHERE id = ?", (sale_id,))
+        conn.commit()
+        conn.close()
+        
+        # Envia comando de deleção para os clientes ao vivo
+        await sales_queue.put({
+            "__action": "delete",
+            "id": sale_id,
+            "value": sale_value
+        })
+        
+        return {"status": "success"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro ao deletar venda: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 logger = logging.getLogger("uvicorn.error")
 
 @router.get("/api/sales/stream")
@@ -102,10 +134,17 @@ async def sales_stream(request: Request):
             try:
                 # Espera por uma nova venda na fila
                 sale_data = await asyncio.wait_for(sales_queue.get(), timeout=1.0)
-                yield {
-                    "event": "new_sale",
-                    "data": json.dumps(sale_data)
-                }
+                
+                if sale_data.get("__action") == "delete":
+                    yield {
+                        "event": "delete_sale",
+                        "data": json.dumps(sale_data)
+                    }
+                else:
+                    yield {
+                        "event": "new_sale",
+                        "data": json.dumps(sale_data)
+                    }
             except asyncio.TimeoutError:
                 # Mantém a conexão viva (ping)
                 yield {

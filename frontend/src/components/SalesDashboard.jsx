@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { ShoppingCart, DollarSign, TrendingUp, CreditCard, Gift, Loader2 } from 'lucide-react';
+import { ShoppingCart, DollarSign, TrendingUp, CreditCard, Gift, Loader2, Trash2 } from 'lucide-react';
 
 export default function SalesDashboard() {
   const [summary, setSummary] = useState({ today: 0, count: 0, ticket: 0 });
@@ -98,8 +97,36 @@ export default function SalesDashboard() {
       playCashSound();
     });
 
+    es.addEventListener('delete_sale', (e) => {
+      const data = JSON.parse(e.data);
+      
+      setRecentSales(prev => prev.filter(sale => sale.id !== data.id));
+      
+      setSummary(prev => {
+        const newCount = Math.max(0, prev.count - 1);
+        const newToday = Math.max(0, prev.today - data.value);
+        return {
+          today: newToday,
+          count: newCount,
+          ticket: newCount > 0 ? newToday / newCount : 0
+        };
+      });
+    });
+
     return () => es.close();
   }, []);
+
+  const handleDeleteSale = async (sale) => {
+    if (!window.confirm(`Tem certeza que deseja apagar a venda de ${sale.name} no valor de R$${sale.value.toFixed(2)}?`)) return;
+    
+    try {
+      const res = await fetch(`/api/sales/${sale.id}`, { method: 'DELETE' });
+      if (!res.ok) alert("Erro ao apagar venda!");
+    } catch(e) {
+      console.error(e);
+      alert("Falha de conexão ao deletar.");
+    }
+  };
 
   const totalValue = summary.today + offsetConfig.today;
   const totalCount = summary.count + offsetConfig.count;
@@ -205,9 +232,16 @@ export default function SalesDashboard() {
                   </div>
                   <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>Comprou {sale.product}</span>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-green)', marginBottom: 2 }}>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-green)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
                     + {fmtMon(sale.value)}
+                    <button 
+                      onClick={() => handleDeleteSale(sale)}
+                      style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 2 }}
+                      title="Remover Venda"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                   <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>{sale.time}</div>
                 </div>
