@@ -50,7 +50,21 @@ def _ids_from_column(values: list[list], col_index: int) -> list[str]:
 
 def _fetch_from_sheets() -> dict:
     """Busca dados diretamente do Google Sheets via gspread."""
-    creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
+    import json
+    env_creds = os.getenv("GOOGLE_CREDENTIALS_JSON")
+    if env_creds:
+        try:
+            creds_dict = json.loads(env_creds)
+            creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+        except Exception as e:
+            print(f"Erro ao parsear GOOGLE_CREDENTIALS_JSON: {e}")
+            return {"leads": [], "clients": [], "total_leads_rows": 0, "total_clients_rows": 0}
+    else:
+        if not os.path.exists(CREDENTIALS_FILE):
+             print("credentials.json não encontrado. Configure o GOOGLE_CREDENTIALS_JSON no servidor.")
+             return {"leads": [], "clients": [], "total_leads_rows": 0, "total_clients_rows": 0}
+        creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
+        
     gc = gspread.authorize(creds)
     sh = gc.open_by_key(SHEET_ID)
 

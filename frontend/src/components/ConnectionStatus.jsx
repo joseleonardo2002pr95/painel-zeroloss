@@ -10,7 +10,7 @@ export default function ConnectionStatus() {
     { name: 'PerfectPay', status: 'connected' },
     { name: 'Payt', status: 'connected' },
     { name: 'Kirvano', status: 'connected' },
-    { name: 'XP Empresas (Pix)', status: 'disconnected' },
+    { name: 'XP Empresas (Pix)', status: 'connected' },
   ];
 
   const allConnected = platforms.every(p => p.status === 'connected');
