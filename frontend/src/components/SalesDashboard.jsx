@@ -187,34 +187,27 @@ export default function SalesDashboard() {
         
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: 'var(--color-green)', boxShadow: '0 0 8px var(--color-green)', animation: 'pulse-red 2s infinite' }} />
+            <div className="live-dot" />
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-green)', letterSpacing: '2.5px', textTransform: 'uppercase' }}>Receita de Hoje</span>
           </div>
           <div style={{ fontSize: 'clamp(2.5rem, 6vw, 4rem)', fontWeight: 900, color: 'var(--color-green)', letterSpacing: '-2px', lineHeight: 1.1, textShadow: '0 0 40px rgba(34, 197, 94, 0.3)' }}>
             <AnimatedNumber value={totalValue} formatter={fmtMon} />
           </div>
-          {(offsetConfig.mesVal || 0) > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#f59e0b' }} />
-              <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-                Volume do Mês: <strong style={{ color: 'var(--color-text)' }}>{fmtMon(volumeTotal)}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+            <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+              Ontem: <strong style={{ color: 'var(--color-text)' }}>{fmtMon(offsetConfig.ontemVal || 0)}</strong>
+            </span>
+            {(offsetConfig.mesVal || 0) > 0 && (
+              <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', marginLeft: 12 }}>
+                Mês: <strong style={{ color: 'var(--color-text)' }}>{fmtMon(volumeTotal)}</strong>
               </span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Cards Superiores */}
+      {/* Cards Superiores - sem Receita de Hoje (já no hero) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-        <SummaryCard 
-          title="Receita de Hoje" 
-          value={totalValue} 
-          formatter={fmtMon}
-          icon={<DollarSign size={20} />} 
-          main 
-          onTitleClick={handleConfigClick}
-          subtext={`Ontem: ${fmtMon(offsetConfig.ontemVal || 0)}`}
-        />
         <SummaryCard 
           title="Vendas Hoje" 
           value={totalCount} 
@@ -227,7 +220,7 @@ export default function SalesDashboard() {
           value={totalTicket} 
           formatter={fmtMon}
           icon={<TrendingUp size={20} />} 
-          subtext=""
+          subtext={offsetConfig.ontemCount > 0 ? `Ontem: ${fmtMon((offsetConfig.ontemVal || 0) / offsetConfig.ontemCount)}` : ''}
         />
       </div>
 
