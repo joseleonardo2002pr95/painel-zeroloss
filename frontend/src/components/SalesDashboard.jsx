@@ -184,7 +184,7 @@ export default function SalesDashboard() {
             <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-text-muted)', letterSpacing: '0.5px' }}>{p.label}</span>
           </div>
         ))}
-        <button onClick={handleConfigClick} style={{ marginLeft: 4, background: 'transparent', border: '1px solid #2a2a2a', color: 'var(--color-text-muted)', borderRadius: 6, padding: '3px 8px', fontSize: '0.6875rem', cursor: 'pointer' }}>
+        <button onClick={handleConfigClick} style={{ marginLeft: 4, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', borderRadius: 6, padding: '3px 8px', fontSize: '0.6875rem', cursor: 'pointer' }}>
           ⚙ Config
         </button>
       </div>
@@ -192,8 +192,8 @@ export default function SalesDashboard() {
       {/* Hero Card - Receita de Hoje */}
       <div style={{ 
         position: 'relative', overflow: 'hidden', padding: '2rem 1.75rem',
-        background: '#0a0a0a',
-        border: '1px solid #1a1a1a',
+        background: 'var(--color-bg-card)',
+        border: '1px solid var(--color-border)',
         borderRadius: 12
       }}>
         {/* Top glow line */}
@@ -208,12 +208,12 @@ export default function SalesDashboard() {
             <AnimatedNumber value={totalValue} formatter={fmtMon} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 4 }}>
-            <span style={{ fontSize: '0.75rem', color: '#555' }}>
-              Ontem: <span style={{ color: '#888' }}>{fmtMon(offsetConfig.ontemVal || 0)}</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+              Ontem: <span style={{ color: 'var(--color-text-subtle)' }}>{fmtMon(offsetConfig.ontemVal || 0)}</span>
             </span>
             {(offsetConfig.mesVal || 0) > 0 && (
-              <span style={{ fontSize: '0.75rem', color: '#555' }}>
-                Mês: <span style={{ color: '#888' }}>{fmtMon(volumeTotal)}</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                Mês: <span style={{ color: 'var(--color-text-subtle)' }}>{fmtMon(volumeTotal)}</span>
               </span>
             )}
           </div>
@@ -222,30 +222,28 @@ export default function SalesDashboard() {
 
       {/* Stat tiles row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-        {/* Vendas Hoje */}
-        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 10, padding: '1.25rem 1.5rem' }}>
-          <div style={{ fontSize: '0.625rem', fontWeight: 700, color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 6 }}>Vendas Hoje</div>
+        <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: 10, padding: '1.25rem 1.5rem' }}>
+          <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 6 }}>Vendas Hoje</div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>
             <AnimatedNumber value={totalCount} formatter={v => Math.round(v).toString()} />
           </div>
-          <div style={{ fontSize: '0.6875rem', color: '#444', marginTop: 4 }}>Ontem: {offsetConfig.ontemCount || 0}</div>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', marginTop: 4 }}>Ontem: {offsetConfig.ontemCount || 0}</div>
         </div>
 
-        {/* Ticket Médio */}
-        <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 10, padding: '1.25rem 1.5rem' }}>
-          <div style={{ fontSize: '0.625rem', fontWeight: 700, color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 6 }}>Ticket Médio</div>
+        <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: 10, padding: '1.25rem 1.5rem' }}>
+          <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: 6 }}>Ticket Médio</div>
           <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.5px' }}>
             <AnimatedNumber value={totalTicket} formatter={fmtMon} />
           </div>
-          <div style={{ fontSize: '0.6875rem', color: '#444', marginTop: 4 }}>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', marginTop: 4 }}>
             {offsetConfig.ontemCount > 0 ? `Ontem: ${fmtMon((offsetConfig.ontemVal || 0) / offsetConfig.ontemCount)}` : '\u00a0'}
           </div>
         </div>
       </div>
 
       {/* Origem das Vendas - compact row */}
-      <div style={{ background: '#0d0d0d', border: '1px solid #1a1a1a', borderRadius: 10, padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div style={{ fontSize: '0.625rem', fontWeight: 700, color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Origem das Vendas</div>
+      <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: 10, padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Origem das Vendas</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
           {Object.values(platformsData).map(p => {
             const displayValue = p.label === 'XP (Pix)' ? p.value + offsetConfig.today : p.value;
@@ -253,8 +251,8 @@ export default function SalesDashboard() {
             return (
               <div key={p.label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: p.color, flexShrink: 0 }} />
-                <span style={{ fontSize: '0.8125rem', color: '#888', minWidth: 110 }}>{p.label}</span>
-                <div style={{ flex: 1, height: 4, background: '#1a1a1a', borderRadius: 99, overflow: 'hidden' }}>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)', minWidth: 110 }}>{p.label}</span>
+                <div style={{ flex: 1, height: 4, background: 'var(--color-bg-elevated)', borderRadius: 99, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${pct}%`, background: p.color, borderRadius: 99, transition: 'width 0.6s ease-out' }} />
                 </div>
                 <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text)', minWidth: 80, textAlign: 'right' }}>{fmtMon(displayValue)}</span>
@@ -265,9 +263,9 @@ export default function SalesDashboard() {
       </div>
 
       {/* Feed de Transações - reference style */}
-      <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #1a1a1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#555', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Feed de Transações</span>
+      <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Feed de Transações</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.6875rem', color: 'var(--color-green)' }}>
             <div className="live-dot" style={{ width: 6, height: 6 }} /> Ao Vivo
           </span>

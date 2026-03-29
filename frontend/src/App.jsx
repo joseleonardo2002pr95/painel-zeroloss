@@ -129,9 +129,6 @@ function App() {
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: 4 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <span style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--color-text-subtle)' }}>
-            Gerenciador de Campanhas
-          </span>
           <div style={{ marginLeft: 'auto' }}>
             <ConnectionStatus />
           </div>
@@ -164,17 +161,18 @@ function App() {
         .sidebar {
           width: 220px;
           border-right: 1px solid var(--color-border);
-          background: #0d0d0d;
+          background: var(--color-bg-card);
           display: flex;
           flex-direction: column;
           flex-shrink: 0;
+          transition: background 0.2s;
         }
         @media (max-width: 767px) {
           .sidebar {
             position: fixed;
             top: 0; left: 0; bottom: 0;
             transform: translateX(-100%);
-            transition: transform 0.25s ease;
+            transition: transform 0.25s ease, background 0.2s;
             z-index: 40;
           }
           .sidebar.sidebar-open { transform: translateX(0); }
