@@ -52,17 +52,15 @@ def _fetch_from_sheets() -> dict:
     """Busca dados diretamente do Google Sheets via gspread."""
     import json
     env_creds = os.getenv("GOOGLE_CREDENTIALS_JSON")
-    if env_creds:
+    if env_creds and env_creds.strip():
         try:
             creds_dict = json.loads(env_creds)
             creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
         except Exception as e:
-            print(f"Erro ao parsear GOOGLE_CREDENTIALS_JSON: {e}")
-            return {"leads": [], "clients": [], "total_leads_rows": 0, "total_clients_rows": 0}
+            raise Exception(f"Erro ao parsear o JSON da variável GOOGLE_CREDENTIALS_JSON. Formato inválido: {e}")
     else:
         if not os.path.exists(CREDENTIALS_FILE):
-             print("credentials.json não encontrado. Configure o GOOGLE_CREDENTIALS_JSON no servidor.")
-             return {"leads": [], "clients": [], "total_leads_rows": 0, "total_clients_rows": 0}
+             raise Exception("A variável GOOGLE_CREDENTIALS_JSON está vazia e o arquivo credentials.json não existe no container.")
         creds = Credentials.from_service_account_file(CREDENTIALS_FILE, scopes=SCOPES)
         
     gc = gspread.authorize(creds)
