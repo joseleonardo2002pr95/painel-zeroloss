@@ -457,7 +457,11 @@ function ConfigModal({ onClose, offsetConfig, setOffsetConfig }) {
   
   const handleBulkImport = async () => {
     try {
-      const list = JSON.parse(bulkJson);
+      // Sanitiza aspas tipográficas (", ") que alguns apps substituem automaticamente
+      const sanitized = bulkJson
+        .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
+        .replace(/[\u2018\u2019\u201A\u201B]/g, "'");
+      const list = JSON.parse(sanitized);
       if (!Array.isArray(list)) return alert('Deve ser uma lista (Array) de JSON.');
       setIsLoading(true);
       
@@ -478,7 +482,7 @@ function ConfigModal({ onClose, offsetConfig, setOffsetConfig }) {
       alert(`Foram importadas ${list.length} vendas com sucesso!`);
       setBulkJson('');
     } catch (e) {
-      alert('Erro de JSON inválido ou falha na importação.');
+      alert(`Erro no JSON: ${e.message}`);
     }
     setIsLoading(false);
   };
