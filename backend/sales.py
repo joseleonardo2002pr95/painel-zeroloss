@@ -57,10 +57,14 @@ def save_sale(sale_event: dict):
 
 @router.get("/api/sales/today")
 def get_sales_today():
-    """Retorna todas as vendas ocorridas desde a meia-noite (UTC/Server Time)."""
+    """Retorna todas as vendas ocorridas desde a meia-noite (Horário de Brasília, GMT-3)."""
     conn = sqlite3.connect(DB_PATH)
-    # Definindo a meia noite de hoje
-    today_start = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    # Meia-noite no horário de Brasília (GMT-3)
+    tz_brt = datetime.timezone(datetime.timedelta(hours=-3))
+    now_brt = datetime.datetime.now(tz_brt)
+    today_start_brt = now_brt.replace(hour=0, minute=0, second=0, microsecond=0)
+    # Converter para UTC para comparar com o banco (que armazena em UTC naive)
+    today_start = today_start_brt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
     
     cursor = conn.cursor()
     cursor.execute('''
