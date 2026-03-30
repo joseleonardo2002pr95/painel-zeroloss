@@ -61,7 +61,10 @@ export default function SalesDashboard() {
           setRecentSales(last50);
           
           setPlatformsData(prev => {
-             const plt = { ...prev };
+             // Deep copy each platform entry to avoid mutating previous state
+             const plt = Object.fromEntries(
+               Object.entries(prev).map(([k, v]) => [k, { ...v }])
+             );
              dbSales.forEach(s => {
                 const pName = s.platform;
                 const pKey = Object.keys(plt).find(k => k.toLowerCase() === pName?.toLowerCase()) || 'Kirvano';
@@ -246,7 +249,7 @@ export default function SalesDashboard() {
         <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Origem das Vendas</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
           {Object.values(platformsData).map(p => {
-            const displayValue = p.label === 'XP (Pix)' ? p.value + offsetConfig.today : p.value;
+            const displayValue = p.value;
             const pct = totalValue > 0 ? Math.min(100, (displayValue / totalValue) * 100) : 0;
             return (
               <div key={p.label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
