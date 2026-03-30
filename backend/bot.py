@@ -45,6 +45,16 @@ async def send_broadcast(job_id: str, target_ids, messages, jobs: dict):
                             photo=BufferedInputFile(file=image_bytes, filename="image.jpg"),
                         )
 
+                    elif msg.type == "video_b64":
+                        # Strip the data-URI header (data:video/mp4;base64,...)
+                        header, b64_data = msg.content.split(",", 1)
+                        video_bytes = base64.b64decode(b64_data)
+                        from aiogram.types import BufferedInputFile
+                        await bot.send_video(
+                            chat_id=uid,
+                            video=BufferedInputFile(file=video_bytes, filename="video.mp4"),
+                        )
+
                 except Exception as e:
                     print(f"Falha ao enviar para {uid}: {e}")
                     success = False
