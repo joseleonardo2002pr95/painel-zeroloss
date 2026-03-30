@@ -96,7 +96,7 @@ async def delete_sale(sale_id: str):
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("SELECT value FROM sales WHERE id = ?", (sale_id,))
+        cursor.execute("SELECT value, platform FROM sales WHERE id = ?", (sale_id,))
         row = cursor.fetchone()
         
         if not row:
@@ -104,15 +104,17 @@ async def delete_sale(sale_id: str):
             raise HTTPException(status_code=404, detail="Sale not found")
             
         sale_value = row[0]
+        sale_platform = row[1]
         cursor.execute("DELETE FROM sales WHERE id = ?", (sale_id,))
         conn.commit()
         conn.close()
         
-        # Envia comando de deleção para os clientes ao vivo
+        # Envia comando de deleção para os clientes ao vivo (inclui platform para atualizar barras)
         await sales_queue.put({
             "__action": "delete",
             "id": sale_id,
-            "value": sale_value
+            "value": sale_value,
+            "platform": sale_platform
         })
         
         return {"status": "success"}

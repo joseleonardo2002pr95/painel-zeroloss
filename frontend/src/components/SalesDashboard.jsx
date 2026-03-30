@@ -6,10 +6,11 @@ export default function SalesDashboard() {
   const [offsetConfig, setOffsetConfig] = useState({ today: 0, count: 0, ontemVal: 0, ontemCount: 0, mesVal: 0, metaGoal: 1000000 });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [platformsData, setPlatformsData] = useState({
-    PerfectPay: { value: 0, color: '#3b82f6', label: 'PerfectPay' },
-    Payt:       { value: 0, color: '#f59e0b', label: 'Payt' },
-    Kirvano:    { value: 0, color: '#10b981', label: 'Kirvano' },
-    'XP Empresas (Pix)': { value: 0, color: '#8b5cf6', label: 'XP (Pix)' }
+    PerfectPay:           { value: 0, color: '#3b82f6', label: 'PerfectPay' },
+    Payt:                 { value: 0, color: '#f59e0b', label: 'Payt' },
+    Kirvano:              { value: 0, color: '#10b981', label: 'Kirvano' },
+    'XP Empresas (Pix)':  { value: 0, color: '#8b5cf6', label: 'XP (Pix)' },
+    Pix:                  { value: 0, color: '#a78bfa', label: 'Pix' }
   });
   const [recentSales, setRecentSales] = useState([]);
   // Rastreia IDs já carregados do banco para evitar duplicatas vindas do SSE
@@ -129,30 +130,34 @@ export default function SalesDashboard() {
 
     es.addEventListener('delete_sale', (e) => {
       const data = JSON.parse(e.data);
-      
-      setRecentSales(prev => prev.filter(sale => sale.id !== data.id));
-      
-      setSummary(prev => {
-        const newCount = Math.max(0, prev.count - 1);
-        const newToday = Math.max(0, prev.today - data.value);
-        return {
-          today: newToday,
-          count: newCount,
-          ticket: newCount > 0 ? newToday / newCount : 0
-        };
-      });
 
-      setPlatformsData(prev => {
-        const platName = data.platform || 'Kirvano';
-        const pKey = Object.keys(prev).find(k => k.toLowerCase() === platName.toLowerCase()) || 'Kirvano';
-        
-        return {
-          ...prev,
-          [pKey]: {
-            ...prev[pKey],
-            value: Math.max(0, prev[pKey].value - data.value)
-          }
-        };
+      // Pega platform da venda que está na lista (mais confiável que o SSE antigo sem platform)
+      setRecentSales(prev => {
+        const deletedSale = prev.find(s => s.id === data.id);
+        const platName = data.platform || deletedSale?.platform || 'Kirvano';
+
+        setSummary(s => {
+          const newCount = Math.max(0, s.count - 1);
+          const newToday = Math.max(0, s.today - data.value);
+          return {
+            today: newToday,
+            count: newCount,
+            ticket: newCount > 0 ? newToday / newCount : 0
+          };
+        });
+
+        setPlatformsData(plt => {
+          const pKey = Object.keys(plt).find(k => k.toLowerCase() === platName.toLowerCase()) || 'Kirvano';
+          return {
+            ...plt,
+            [pKey]: {
+              ...plt[pKey],
+              value: Math.max(0, plt[pKey].value - data.value)
+            }
+          };
+        });
+
+        return prev.filter(sale => sale.id !== data.id);
       });
     });
 
@@ -257,9 +262,10 @@ export default function SalesDashboard() {
       <div style={{ background: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: 10, padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <div style={{ fontSize: '0.625rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Origem das Vendas</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-          {Object.values(platformsData).map(p => {
+          {Object.values(platformsData).filter(p => p.value > 0).map(p => {
             const displayValue = p.value;
-            const pct = totalValue > 0 ? Math.min(100, (displayValue / totalValue) * 100) : 0;
+            const allPlatformsTotal = Object.values(platformsData).reduce((acc, pl) => acc + pl.value, 0);
+            const pct = allPlatformsTotal > 0 ? Math.min(100, (displayValue / allPlatformsTotal) * 100) : 0;
             return (
               <div key={p.label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: p.color, flexShrink: 0 }} />
