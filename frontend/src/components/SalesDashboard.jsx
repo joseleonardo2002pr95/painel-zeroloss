@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ShoppingCart, DollarSign, TrendingUp, CreditCard, Gift, Loader2, Trash2 } from 'lucide-react';
 
 export default function SalesDashboard() {
@@ -12,6 +12,8 @@ export default function SalesDashboard() {
     'XP Empresas (Pix)': { value: 0, color: '#8b5cf6', label: 'XP (Pix)' }
   });
   const [recentSales, setRecentSales] = useState([]);
+  // Rastreia IDs já carregados do banco para evitar duplicatas vindas do SSE
+  const seenSaleIds = useRef(new Set());
   
   // Audio effect para "cash" opcional (pode ser adicionado se quiser depois)
   const playCashSound = () => {
@@ -56,8 +58,11 @@ export default function SalesDashboard() {
              ticket: dbSales.length > 0 ? (totalVal / dbSales.length) : 0
           });
 
-          // Pega as últimas 50 para o feed
-          const last50 = dbSales.slice(-50).map(s => ({...s, time: new Date(s.created_at + 'Z').toLocaleTimeString()}));
+          // Pega as últimas 50 para o feed e registra os IDs como já vistos
+          const last50 = dbSales.slice(-50).map(s => {
+            seenSaleIds.current.add(s.id);
+            return { ...s, time: new Date(s.created_at + 'Z').toLocaleTimeString() };
+          });
           setRecentSales(last50);
           
           setPlatformsData(prev => {
@@ -83,6 +88,10 @@ export default function SalesDashboard() {
     es.addEventListener('new_sale', (e) => {
       const data = JSON.parse(e.data);
       // data format: { id, name, product, value, platform }
+
+      // Ignora se já foi carregado via fetch inicial (evita duplicata da fila SSE)
+      if (seenSaleIds.current.has(data.id)) return;
+      seenSaleIds.current.add(data.id);
       
       setRecentSales(prev => {
         const updated = [
