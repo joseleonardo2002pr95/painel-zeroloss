@@ -310,18 +310,31 @@ async def kirvano_webhook(request: Request):
     """
     try:
         raw_body = await request.json()
+
+        # ✅ Salva no debug ANTES de qualquer processamento
+        DEBUG_PAYLOADS.append({"platform": "Kirvano", "payload": raw_body})
+        if len(DEBUG_PAYLOADS) > 10: DEBUG_PAYLOADS.pop(0)
+
         body = raw_body.get("data", raw_body)
-        
-        status = str(body.get("status", raw_body.get("event", ""))).lower()
-        # Kirvano usualmente manda 'approved'
-        if status not in ["approved", "paid", "aprovado", "charge.approved", "transaction.approved"]:
-            return {"message": "Ignorado - Status não aprovado"}
-            
-        tx_id = body.get("transaction_id", body.get("id", "textoNA"))
-        
-        buyer = body.get("buyer", body.get("customer", {}))
+
+        # ✅ Verifica status E event (Kirvano manda "APPROVED" e "SALE_APPROVED")
+        status = str(body.get("status", "")).lower()
+        event  = str(body.get("event", raw_body.get("event", ""))).lower()
+
+        approved_statuses = ["approved", "paid", "aprovado", "charge.approved", "transaction.approved"]
+        approved_events   = ["sale_approved", "purchase_approved", "approved"]
+
+        if status not in approved_statuses and event not in approved_events:
+            logger.info(f"[Kirvano] Ignorado - status={status}, event={event}")
+            return {"message": f"Ignorado - status={status}, event={event}"}
+
+        # ✅ Kirvano usa "sale_id" como identificador da transação
+        tx_id = body.get("sale_id", body.get("transaction_id", body.get("id", "textoNA")))
+
+        # ✅ Kirvano usa "customer", com fallback para "buyer"
+        buyer = body.get("customer", body.get("buyer", {}))
         name = buyer.get("name", buyer.get("full_name", body.get("customer_name", "Cliente")))
-        
+
         product_name = "Produto Oculto"
         products_list = body.get("products", [])
         if products_list and isinstance(products_list, list):
@@ -329,9 +342,16 @@ async def kirvano_webhook(request: Request):
         else:
             product_obj = body.get("product", {})
             product_name = product_obj.get("name", body.get("product_name", "Produto Oculto"))
-        
-        # Kirvano value - Cuidado: "R$ 169,80"
-        val = body.get("commission", body.get("net_amount", body.get("total_price", body.get("amount", body.get("value", body.get("price", 0.0))))))
+
+        # ✅ Kirvano: comissão em fiscal.commission, com fallbacks
+        fiscal = body.get("fiscal", {})
+        val = fiscal.get("commission",
+              body.get("commission",
+              body.get("net_amount",
+              body.get("total_price",
+              body.get("amount",
+              body.get("value",
+              body.get("price", 0.0)))))))
         try:
             if isinstance(val, str):
                 val_clean = val.replace("R$", "").replace(".", "").replace(",", ".").strip()
@@ -340,7 +360,7 @@ async def kirvano_webhook(request: Request):
                 val = float(val)
         except:
             val = 0.0
-            
+
         sale_event = {
             "id": f"kirvano_{tx_id}",
             "name": name,
@@ -348,15 +368,15 @@ async def kirvano_webhook(request: Request):
             "value": val,
             "platform": "Kirvano"
         }
-        
+
         save_sale(sale_event)
         await sales_queue.put(sale_event)
 
-        logger.info(f"[Kirvano] Venda Recebida: {name} - {product} - {val}")
+        logger.info(f"[Kirvano] Venda Recebida: {name} - {product_name} - {val}")
         return {"status": "ok"}
     except Exception as e:
         logger.error(f"Erro no webhook da Kirvano: {e}")
-        return {"status": "error"}
+        return {"status": "error", "message": str(e)}
 
 @router.post("/webhooks/xp")
 async def xp_webhook(request: Request):
