@@ -343,23 +343,33 @@ async def kirvano_webhook(request: Request):
             product_obj = body.get("product", {})
             product_name = product_obj.get("name", body.get("product_name", "Produto Oculto"))
 
-        # ✅ Kirvano: comissão em fiscal.commission, com fallbacks
+        # ✅ Detecta automaticamente co-produtor vs produtor
+        # Se coproductionCommission > 0 → sou co-produtor, uso esse valor
+        # Se coproductionCommission == 0 → sou produtor, uso commission
         fiscal = body.get("fiscal", {})
-        val = fiscal.get("commission",
-              body.get("commission",
-              body.get("net_amount",
-              body.get("total_price",
-              body.get("amount",
-              body.get("value",
-              body.get("price", 0.0)))))))
+
+        coprod_val = body.get("coproductionCommission",
+                     fiscal.get("coproduction_commission", 0))
         try:
-            if isinstance(val, str):
-                val_clean = val.replace("R$", "").replace(".", "").replace(",", ".").strip()
-                val = float(val_clean)
-            else:
-                val = float(val)
+            coprod_val = float(coprod_val)
         except:
-            val = 0.0
+            coprod_val = 0.0
+
+        if coprod_val > 0:
+            # Co-produtor: usa coproductionCommission
+            val = coprod_val
+            logger.info(f"[Kirvano] Co-produtor detectado → comissão: {val}")
+        else:
+            # Produtor: usa commission (raiz ou fiscal)
+            val = body.get("commission", fiscal.get("commission", 0.0))
+            try:
+                if isinstance(val, str):
+                    val = float(val.replace("R$", "").replace(".", "").replace(",", ".").strip())
+                else:
+                    val = float(val)
+            except:
+                val = 0.0
+            logger.info(f"[Kirvano] Produtor detectado → comissão: {val}")
 
         sale_event = {
             "id": f"kirvano_{tx_id}",
