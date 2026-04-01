@@ -6,8 +6,10 @@ import BroadcastComposer from './components/BroadcastComposer';
 import BroadcastHistory from './components/BroadcastHistory';
 import SalesDashboard from './components/SalesDashboard';
 import ConnectionStatus from './components/ConnectionStatus';
+import LoginPage, { isAuthenticated } from './components/LoginPage';
 
 function App() {
+  const [authed, setAuthed] = useState(isAuthenticated());
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('aovivo');
   const [theme, setTheme] = useState('dark');
@@ -17,6 +19,11 @@ function App() {
   }, [theme]);
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+
+  // ─── Tela de Login ───────────────────────────────────────────────────────────
+  if (!authed) {
+    return <LoginPage onLogin={() => setAuthed(true)} />;
+  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--color-bg-base)', position: 'relative' }}>
@@ -107,10 +114,24 @@ function App() {
           <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(135deg, #22c55e, #16a34a)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#000' }}>A</span>
           </div>
-          <div>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-text)' }}>Admin</p>
-            <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)' }}>Circle Digital</p>
+            <p style={{ fontSize: '0.6875rem', color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Circle Digital</p>
           </div>
+          <button
+            id="logout-btn"
+            onClick={() => { sessionStorage.removeItem('zl_auth_token'); setAuthed(false); }}
+            title="Sair da conta"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#444', padding: 4, flexShrink: 0, display: 'flex', alignItems: 'center' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+            onMouseLeave={e => e.currentTarget.style.color = '#444'}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
         </div>
       </aside>
 

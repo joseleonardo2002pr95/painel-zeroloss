@@ -405,7 +405,14 @@ async def xp_webhook(request: Request):
         
         val = body.get("value", body.get("amount", body.get("price", 0.0)))
         try:
-            val = float(str(val).replace(',', '.'))
+            val_str = str(val).strip()
+            # Formato BR: ponto como separador de milhar e vírgula como decimal
+            # Exemplos que chegam: "1.365,00" / "5.123,54" / "600,00" / "600.00"
+            if ',' in val_str:
+                # Tem vírgula → certamente formato BR: remove pontos (milhar) e troca vírgula por ponto
+                val_str = val_str.replace('.', '').replace(',', '.')
+            # Senão, é float padrão (ex: "600.00") — não precisa de transformação
+            val = float(val_str)
         except:
             val = 0.0
             

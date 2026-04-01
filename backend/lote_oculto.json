@@ -40,7 +40,8 @@
   {"name": "Eduardo de Sales", "product": "ZeroLoss", "value": 91.16, "platform": "Payt"},
   {"name": "Jivangley Araújo", "product": "ZeroLoss", "value": 91.16, "platform": "Payt"},
   {"name": "Halex Thiago de Oliveira Rodriguez", "product": "ZeroLoss", "value": 233.68, "platform": "Payt"},
-  {"name": "Anderson Leonardo", "product": "Desconhecido", "value": 100.00, "platform": "Pix"},
-  {"name": "Wanderson F Lopes", "product": "Desconhecido", "value": 70.00, "platform": "Pix"},
-  {"name": "Antônio Pedro Faccini Arias", "product": "ZeroLoss", "value": 91.16, "platform": "Payt"}
+  {"name": "Anderson Leonardo", "product": "Desconhecido", "value": 100.00, "platform": "XP Empresas (Pix)"},
+  {"name": "Wanderson F Lopes", "product": "Desconhecido", "value": 70.00, "platform": "XP Empresas (Pix)"},
+  {"name": "Antônio Pedro Faccini Arias", "product": "ZeroLoss", "value": 91.16, "platform": "Payt"},
+  {"name": "José", "product": "Gabriel Cashout", "value": 30.06, "platform": "Kirvano"}
 ]
