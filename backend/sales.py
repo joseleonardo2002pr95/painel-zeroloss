@@ -200,13 +200,25 @@ async def perfectpay_webhook(request: Request):
         
         val = payload.get("sale_amount", 0)
         try:
-            # Tenta pegar apenas o valor da comissão recebido (tipo produtor ou afiliado)
             commissions = payload.get("commission", [])
+            # 1ª prioridade: produtor (affiliation_type_enum == 1)
+            producer_val = None
+            coproducer_val = None
             for c in commissions:
-                # Na PerfectPay, a taxa deles costuma ser affiliation_type_enum 0.
-                if c.get("name") != "PerfectPay" and c.get("affiliation_type_enum") != 0:
-                    val = c.get("commission_amount", val)
+                aff_type = c.get("affiliation_type_enum", -1)
+                if aff_type == 1:  # producer
+                    producer_val = c.get("commission_amount")
                     break
+                elif aff_type == 2 and coproducer_val is None:  # co-producer (guarda o primeiro)
+                    coproducer_val = c.get("commission_amount")
+            
+            if producer_val is not None:
+                val = producer_val
+                logger.info(f"[PerfectPay] Usando comissão de PRODUTOR: {val}")
+            elif coproducer_val is not None:
+                val = coproducer_val
+                logger.info(f"[PerfectPay] Produtor não encontrado, usando co-produtor: {val}")
+            # Senão mantém sale_amount como fallback
         except Exception:
             pass
             
