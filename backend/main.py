@@ -16,6 +16,8 @@ from sheets import get_audience_data, get_last_updated
 from bot import send_broadcast
 from history import add_record, get_records
 import sales
+import tasks
+from tasks import seed_tasks
 
 app = FastAPI(title="Painel ZeroLoss API")
 
@@ -27,8 +29,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registra a router de Vendas (Webhooks e SSE)
+# Registra as routers
 app.include_router(sales.router)
+app.include_router(tasks.router)
+
+# Seed das tarefas iniciais no Supabase (idempotente)
+@app.on_event("startup")
+async def startup_event():
+    seed_tasks()
 
 # ──────────────────────────────────────────────
 # Broadcast Job Store
