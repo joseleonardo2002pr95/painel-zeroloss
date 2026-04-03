@@ -128,6 +128,59 @@ def get_tasks():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class NewTaskPayload(BaseModel):
+    title: str
+    type: str = "daily"           # 'daily' | 'weekly' | 'continuous'
+    target_count: int = 1
+    project: str = "Geral"
+    frequency: str = "daily"      # 'daily' | 'weekly' | 'continuous' | 'custom'
+    custom_interval_days: Optional[int] = None
+
+
+@router.post("/api/tasks")
+def create_task(payload: NewTaskPayload):
+    """Cria uma nova tarefa."""
+    sb = get_supabase()
+    if not sb:
+        raise HTTPException(status_code=503, detail="Supabase não configurado")
+    try:
+        import uuid as _uuid
+        new_id = f"custom-{_uuid.uuid4().hex[:10]}"
+        # Descobre o próximo sort_order
+        res = sb.table("tasks").select("sort_order").order("sort_order", desc=True).limit(1).execute()
+        last_order = res.data[0]["sort_order"] if res.data else 0
+        task = {
+            "id":                   new_id,
+            "title":                payload.title,
+            "type":                 payload.type,
+            "target_count":         payload.target_count,
+            "project":              payload.project,
+            "frequency":            payload.frequency,
+            "custom_interval_days": payload.custom_interval_days,
+            "sort_order":           last_order + 1,
+            "is_active":            True,
+        }
+        sb.table("tasks").insert(task).execute()
+        return {"status": "ok", "task": task}
+    except Exception as e:
+        logger.error(f"[Tasks] Erro ao criar tarefa: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/api/tasks/{task_id}")
+def delete_task(task_id: str):
+    """Desativa (soft-delete) uma tarefa."""
+    sb = get_supabase()
+    if not sb:
+        raise HTTPException(status_code=503, detail="Supabase não configurado")
+    try:
+        sb.table("tasks").update({"is_active": False}).eq("id", task_id).execute()
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"[Tasks] Erro ao deletar tarefa {task_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 class CompletePayload(BaseModel):
     delta: int = 1  # +1 para completar, -1 para desfazer
 
