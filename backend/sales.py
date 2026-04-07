@@ -408,19 +408,17 @@ async def perfectpay_webhook(request: Request):
         val = payload.get("sale_amount", 0)
         try:
             commissions = payload.get("commission", [])
-            producer_val = None
-            coproducer_val = None
+            # Sempre pega a MAIOR comissão — Circle Digital tem sempre a maior parte
+            amounts = []
             for c in commissions:
-                aff_type = c.get("affiliation_type_enum", -1)
-                if aff_type == 1:
-                    producer_val = c.get("commission_amount")
-                    break
-                elif aff_type == 2 and coproducer_val is None:
-                    coproducer_val = c.get("commission_amount")
-            if producer_val is not None:
-                val = producer_val
-            elif coproducer_val is not None:
-                val = coproducer_val
+                amt = c.get("commission_amount")
+                if amt is not None:
+                    try:
+                        amounts.append(float(amt))
+                    except Exception:
+                        pass
+            if amounts:
+                val = max(amounts)
         except Exception:
             pass
 
