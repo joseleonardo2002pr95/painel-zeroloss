@@ -574,3 +574,38 @@ async def xp_webhook(request: Request):
     except Exception as e:
         logger.error(f"Erro XP webhook: {e}")
         return {"status": "error"}
+
+
+@router.post("/webhooks/paradise")
+async def paradise_webhook(request: Request):
+    """
+    Webhook da plataforma Paradise.
+    TODO: ajustar campos quando souber o formato do JSON.
+    Por enquanto loga o payload e retorna ok.
+    """
+    try:
+        try:
+            payload = await request.json()
+        except Exception:
+            payload = dict(await request.form())
+
+        # Guarda para inspeção em /api/debug
+        DEBUG_PAYLOADS.append({"platform": "Paradise", "payload": payload})
+        if len(DEBUG_PAYLOADS) > 10:
+            DEBUG_PAYLOADS.pop(0)
+
+        logger.info(f"[Paradise] Payload recebido: {json.dumps(payload)[:300]}")
+
+        # ── Quando souber o formato, preencher aqui ──────────────────────────
+        # status  = payload.get("???", "")
+        # if status != "aprovado": return {"message": "Ignorado"}
+        # tx_id   = payload.get("???", uuid.uuid4().hex[:12])
+        # name    = payload.get("???", "Cliente")
+        # product = payload.get("???", "Produto")
+        # val     = float(payload.get("???", 0))
+        # ─────────────────────────────────────────────────────────────────────
+
+        return {"status": "ok", "message": "Payload recebido e logado"}
+    except Exception as e:
+        logger.error(f"Erro Paradise webhook: {e}")
+        return {"status": "error", "message": str(e)}
