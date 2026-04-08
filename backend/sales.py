@@ -578,34 +578,45 @@ async def xp_webhook(request: Request):
 
 @router.post("/webhooks/paradise")
 async def paradise_webhook(request: Request):
-    """
-    Webhook da plataforma Paradise.
-    TODO: ajustar campos quando souber o formato do JSON.
-    Por enquanto loga o payload e retorna ok.
-    """
     try:
         try:
             payload = await request.json()
         except Exception:
             payload = dict(await request.form())
 
-        # Guarda para inspeção em /api/debug
         DEBUG_PAYLOADS.append({"platform": "Paradise", "payload": payload})
         if len(DEBUG_PAYLOADS) > 10:
             DEBUG_PAYLOADS.pop(0)
 
-        logger.info(f"[Paradise] Payload recebido: {json.dumps(payload)[:300]}")
+        # Só processa transações aprovadas
+        status = str(payload.get("status", "")).lower()
+        raw_status = str(payload.get("raw_status", "")).lower()
+        if status not in ("approved", "aprovado") and raw_status not in ("approved", "aprovado"):
+            return {"message": f"Ignorado - status: {status}"}
 
-        # ── Quando souber o formato, preencher aqui ──────────────────────────
-        # status  = payload.get("???", "")
-        # if status != "aprovado": return {"message": "Ignorado"}
-        # tx_id   = payload.get("???", uuid.uuid4().hex[:12])
-        # name    = payload.get("???", "Cliente")
-        # product = payload.get("???", "Produto")
-        # val     = float(payload.get("???", 0))
-        # ─────────────────────────────────────────────────────────────────────
+        tx_id   = payload.get("transaction_id", uuid.uuid4().hex[:12])
+        customer = payload.get("customer", {})
+        name    = customer.get("name", "Cliente")
+        product_obj = payload.get("product", {})
+        product = product_obj.get("name", "Produto Oculto")
 
-        return {"status": "ok", "message": "Payload recebido e logado"}
+        # amount vem em centavos (ex: 100 = R$1,00)
+        try:
+            val = float(payload.get("amount", 0)) / 100.0
+        except Exception:
+            val = 0.0
+
+        sale_event = {
+            "id":       f"paradise_{tx_id}",
+            "name":     name,
+            "product":  product,
+            "value":    val,
+            "platform": "Paradise",
+        }
+        save_sale(sale_event)
+        await sales_queue.put(sale_event)
+        logger.info(f"[Paradise] {name} - {product} - R${val:.2f}")
+        return {"status": "ok"}
     except Exception as e:
         logger.error(f"Erro Paradise webhook: {e}")
         return {"status": "error", "message": str(e)}
