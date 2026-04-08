@@ -9,6 +9,7 @@ export default function SalesDashboard() {
     PerfectPay:          { value: 0, color: '#3b82f6', label: 'PerfectPay' },
     Payt:                { value: 0, color: '#f59e0b', label: 'Payt' },
     Kirvano:             { value: 0, color: '#10b981', label: 'Kirvano' },
+    Paradise:            { value: 0, color: '#f97316', label: 'Paradise' },
     'XP Empresas (Pix)': { value: 0, color: '#8b5cf6', label: 'XP (Pix)' },
     Pix:                 { value: 0, color: '#a78bfa', label: 'Pix' },
   });
@@ -698,7 +699,7 @@ function ConfigModal({ onClose, offsetConfig, setOffsetConfig }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div><label style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>Plataforma</label>
                 <select className="input" value={manPlat} onChange={e => setManPlat(e.target.value)} style={{ marginTop: 4 }}>
-                  <option>XP Empresas (Pix)</option><option>PerfectPay</option><option>Payt</option><option>Kirvano</option>
+                  <option>XP Empresas (Pix)</option><option>PerfectPay</option><option>Payt</option><option>Kirvano</option><option>Paradise</option>
                 </select></div>
               <div><label style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>Nome do Cliente</label>
                 <input type="text" value={manName} onChange={e => setManName(e.target.value)} className="input" placeholder="João da Silva" style={{ marginTop: 4 }} /></div>

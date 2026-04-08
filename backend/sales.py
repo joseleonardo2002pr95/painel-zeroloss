@@ -601,8 +601,12 @@ async def paradise_webhook(request: Request):
         product = product_obj.get("name", "Produto Oculto")
 
         # amount vem em centavos (ex: 100 = R$1,00)
+        # Desconta taxa da plataforma: 4,99% variável + R$1,59 fixo por venda
         try:
-            val = float(payload.get("amount", 0)) / 100.0
+            gross = float(payload.get("amount", 0)) / 100.0
+            val = round(gross * (1 - 0.0499) - 1.59, 2)
+            if val < 0:
+                val = 0.0
         except Exception:
             val = 0.0
 
