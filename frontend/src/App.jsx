@@ -156,10 +156,17 @@ function App() {
             }}>NOVO</span>
           </a>
 
-          {/* Sistema */}
+          {/* Configurações */}
           <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--color-text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase', padding: '0 0.5rem', marginBottom: 4, marginTop: 12 }}>
-            Sistema
+            Configurações
           </div>
+          <a href="#" className={`nav-item ${activeTab === 'produtos' ? 'active' : ''}`}
+            onClick={(e) => { e.preventDefault(); navTo('produtos'); }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+            </svg>
+            Produtos
+          </a>
           <button className="nav-item" onClick={toggleTheme}
             style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}>
             {theme === 'dark' ? <IconSun /> : <IconMoon />}

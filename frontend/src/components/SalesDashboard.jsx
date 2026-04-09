@@ -16,6 +16,7 @@ export default function SalesDashboard() {
   const [recentSales, setRecentSales] = useState([]);
   const [editingId, setEditingId]     = useState(null);
   const [editingVal, setEditingVal]   = useState('');
+  const [expandedDay, setExpandedDay] = useState(null);
   const seenSaleIds = useRef(new Set());
 
   // ── Histórico 7 dias ────────────────────────────────────────────────────────
@@ -355,53 +356,68 @@ export default function SalesDashboard() {
               Histórico disponível após configurar Supabase.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {historyData.map((day) => {
-                const isToday = day.date === todayStr;
+                const isToday   = day.date === todayStr;
+                const isExpanded = expandedDay === day.date;
                 const pct = maxHistory > 0 ? Math.max(3, (day.total / maxHistory) * 100) : 0;
-                const platforms = day.platforms || {};
-                const platEntries = Object.entries(platforms).filter(([,v]) => v > 0);
+                const platEntries = Object.entries(day.platforms || {}).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
                 return (
-                  <div key={day.date}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div key={day.date} style={{ borderRadius: 6, overflow: 'hidden', border: isExpanded ? '1px solid var(--color-border)' : '1px solid transparent', transition: 'border-color 0.2s' }}>
+                    {/* Linha principal — clicável */}
+                    <div
+                      onClick={() => setExpandedDay(isExpanded ? null : day.date)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: day.total > 0 ? 'pointer' : 'default', padding: '2px 4px', borderRadius: isExpanded ? '5px 5px 0 0' : 6, background: isExpanded ? 'rgba(255,255,255,0.03)' : 'transparent' }}
+                      title={day.total > 0 ? 'Clique para ver detalhes por plataforma' : ''}
+                    >
                       <div style={{ minWidth: 36, textAlign: 'right' }}>
                         <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: isToday ? 'var(--color-green)' : 'var(--color-text-muted)' }}>{dayLabel(day.date)}</div>
                         <div style={{ fontSize: '0.5625rem', color: '#444' }}>{shortDate(day.date)}</div>
                       </div>
-                      {/* Barra segmentada por plataforma */}
-                      <div style={{ flex: 1, height: 20, background: 'var(--color-bg-elevated)', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
-                        {day.total > 0 && platEntries.length > 0 ? platEntries.map(([plat, val]) => {
-                          const platColor = platformsData[Object.keys(platformsData).find(k => k.toLowerCase() === plat.toLowerCase())]?.color || '#555';
-                          const segPct = (val / maxHistory) * 100;
-                          return (
-                            <div key={plat} title={`${plat}: ${fmtMon(val)}`} style={{
-                              width: `${segPct}%`, height: '100%', background: platColor,
-                              opacity: isToday ? 1 : 0.55,
-                              transition: 'width 0.6s ease',
-                              boxShadow: isToday ? `0 0 8px ${platColor}66` : 'none',
-                            }} />
-                          );
-                        }) : (
-                          <div style={{ width: `${day.total > 0 ? pct : 0}%`, height: '100%', background: isToday ? 'var(--color-green)' : 'rgba(34,197,94,0.3)', transition: 'width 0.6s ease' }} />
+                      {/* Barra simples (layout original) */}
+                      <div style={{ flex: 1, height: 20, background: 'var(--color-bg-elevated)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                        <div style={{
+                          height: '100%', width: `${day.total > 0 ? pct : 0}%`,
+                          background: isToday ? 'var(--color-green)' : 'rgba(34,197,94,0.3)',
+                          borderRadius: 4, transition: 'width 0.6s ease',
+                          boxShadow: isToday ? '0 0 10px rgba(34,197,94,0.4)' : 'none'
+                        }} />
+                      </div>
+                      <div style={{ minWidth: 90, textAlign: 'right', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                        <div>
+                          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: isToday ? 'var(--color-green)' : 'var(--color-text)' }}>{fmtMon(day.total)}</div>
+                          <div style={{ fontSize: '0.5625rem', color: '#444' }}>{day.count} {day.count === 1 ? 'venda' : 'vendas'}</div>
+                        </div>
+                        {day.total > 0 && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ color: '#333', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
                         )}
                       </div>
-                      <div style={{ minWidth: 90, textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: isToday ? 'var(--color-green)' : 'var(--color-text)' }}>{fmtMon(day.total)}</div>
-                        <div style={{ fontSize: '0.5625rem', color: '#444' }}>{day.count} {day.count === 1 ? 'venda' : 'vendas'}</div>
-                      </div>
                     </div>
-                    {/* Legenda de plataformas do dia */}
-                    {platEntries.length > 1 && (
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: 4, marginLeft: 44 }}>
+
+                    {/* Painel expandido: breakdown por plataforma */}
+                    {isExpanded && platEntries.length > 0 && (
+                      <div style={{ padding: '0.75rem 1rem 0.875rem', background: 'rgba(255,255,255,0.02)', borderTop: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '0.5rem', animation: 'fadeIn 0.2s ease-out' }}>
                         {platEntries.map(([plat, val]) => {
                           const platColor = platformsData[Object.keys(platformsData).find(k => k.toLowerCase() === plat.toLowerCase())]?.color || '#555';
+                          const platPct = day.total > 0 ? (val / day.total) * 100 : 0;
                           return (
-                            <span key={plat} style={{ fontSize: '0.5625rem', color: platColor, display: 'flex', alignItems: 'center', gap: 3 }}>
-                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: platColor, display: 'inline-block' }} />
-                              {plat} {fmtMon(val)}
-                            </span>
+                            <div key={plat} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                              <div style={{ width: 6, height: 6, borderRadius: '50%', background: platColor, flexShrink: 0, boxShadow: `0 0 5px ${platColor}` }} />
+                              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', minWidth: 90 }}>{plat}</span>
+                              <div style={{ flex: 1, height: 4, background: 'var(--color-bg-elevated)', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${platPct}%`, background: platColor, borderRadius: 99, transition: 'width 0.5s ease-out' }} />
+                              </div>
+                              <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-text)', minWidth: 80, textAlign: 'right' }}>{fmtMon(val)}</span>
+                              <span style={{ fontSize: '0.625rem', color: '#444', minWidth: 32, textAlign: 'right' }}>{platPct.toFixed(0)}%</span>
+                            </div>
                           );
                         })}
+                        <div style={{ marginTop: 4, paddingTop: 6, borderTop: '1px solid #1a1a1a', display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.6875rem', color: '#444' }}>{day.count} venda{day.count !== 1 ? 's' : ''} · ticket médio {day.count > 0 ? fmtMon(day.total / day.count) : '—'}</span>
+                        </div>
                       </div>
                     )}
                   </div>
