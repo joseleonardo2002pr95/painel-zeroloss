@@ -641,11 +641,18 @@ async def paradise_webhook(request: Request):
         name        = customer.get("name", "Cliente")
         product_obj = payload.get("product", {})
         product     = product_obj.get("name", "Produto Oculto")
+        prod_hash   = payload.get("tracking", {}).get("product_hash", "")
 
         liquid = _paradise_liquid(float(payload.get("amount", 0)))
 
-        # Se for ZeroLoss Virtual, desconta 16,66% do co-produtor
-        if "zeroloss virtual" in product.lower() or "zero loss virtual" in product.lower():
+        # Busca configuração pelo hash (mais confiável que nome)
+        from products import get_product_by_hash
+        prod_cfg = get_product_by_hash(prod_hash)
+        if prod_cfg and prod_cfg.get("type") == "produtor":
+            commission = float(prod_cfg["commission_percent"]) / 100.0
+            val = round(liquid * commission, 2)
+        elif "zeroloss virtual" in product.lower():
+            # Fallback por nome caso hash não esteja cadastrado
             val = round(liquid * (1 - 0.1666), 2)
         else:
             val = liquid
@@ -689,17 +696,19 @@ async def paradise_coproducao_webhook(request: Request):
         name        = customer.get("name", "Cliente")
         product_obj = payload.get("product", {})
         product     = product_obj.get("name", "Produto Oculto")
+        prod_hash   = payload.get("tracking", {}).get("product_hash", "")
 
         liquid = _paradise_liquid(float(payload.get("amount", 0)))
 
-        # Busca comissão do produto no Supabase
-        from products import get_product_by_name
-        prod_cfg = get_product_by_name(product)
+        # Busca comissão pelo product_hash (exato, sem depender do nome)
+        from products import get_product_by_hash
+        prod_cfg = get_product_by_hash(prod_hash)
         if prod_cfg and prod_cfg.get("commission_percent"):
             commission = float(prod_cfg["commission_percent"]) / 100.0
+            product    = prod_cfg.get("name", product)  # usa nome cadastrado no painel
         else:
-            commission = 1.0  # sem cadastro → 100% do líquido
-            logger.warning(f"[Paradise/Coprod] Produto '{product}' não cadastrado, usando 100%")
+            commission = 1.0
+            logger.warning(f"[Paradise/Coprod] Hash '{prod_hash}' ('{product}') não cadastrado, usando 100%")
 
         val = round(liquid * commission, 2)
 

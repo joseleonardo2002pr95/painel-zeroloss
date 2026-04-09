@@ -5,12 +5,16 @@ Tabela necessária no Supabase:
     CREATE TABLE IF NOT EXISTS products (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL UNIQUE,
-      type TEXT NOT NULL DEFAULT 'coprodutor',  -- 'produtor' | 'coprodutor'
+      hash TEXT UNIQUE,                            -- product_hash da Paradise
+      type TEXT NOT NULL DEFAULT 'coprodutor',     -- 'produtor' | 'coprodutor'
       commission_percent NUMERIC(5,2) NOT NULL DEFAULT 100,
       platform TEXT DEFAULT 'Paradise',
       is_active BOOLEAN DEFAULT TRUE,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    -- Adicionar coluna hash em tabela existente:
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS hash TEXT UNIQUE;
 """
 
 from fastapi import APIRouter, HTTPException
@@ -23,55 +27,47 @@ from supabase_client import get_supabase
 router = APIRouter()
 logger = logging.getLogger("uvicorn.error")
 
-# ── Produtos iniciais (seed) ───────────────────────────────────────────────────
+# ── Produtos com hashes ────────────────────────────────────────────────────────
 INITIAL_PRODUCTS = [
     # Produtor — Circle Digital é dono, co-produtor leva 16,66%
-    {"name": "ZeroLoss Virtual",     "type": "produtor",   "commission_percent": 83.34, "platform": "Paradise"},
+    {"name": "ZeroLoss Virtual",      "hash": "prod_e76afa5c3d120331", "type": "produtor",   "commission_percent": 83.34, "platform": "Paradise"},
     # Coprodução — Circle Digital recebe % sobre o líquido
-    {"name": "DELAY",                "type": "coprodutor", "commission_percent": 70.0,  "platform": "Paradise"},
-    {"name": "GABRIEL VIRTUAL",      "type": "coprodutor", "commission_percent": 56.0,  "platform": "Paradise"},
-    {"name": "ALVANCAGEM VIRTUAL",   "type": "coprodutor", "commission_percent": 57.0,  "platform": "Paradise"},
-    {"name": "DUPLO GREEN",          "type": "coprodutor", "commission_percent": 80.0,  "platform": "Paradise"},
-    {"name": "FUT CASHOUT",          "type": "coprodutor", "commission_percent": 80.0,  "platform": "Paradise"},
-    {"name": "GABRIEL CASHOUT",      "type": "coprodutor", "commission_percent": 67.0,  "platform": "Paradise"},
-    {"name": "Breno Futebol Virtual","type": "coprodutor", "commission_percent": 67.0,  "platform": "Paradise"},
+    {"name": "Delay",                 "hash": "prod_0aea65cba434babd", "type": "coprodutor", "commission_percent": 70.0,  "platform": "Paradise"},
+    {"name": "Gabriel Virtual",       "hash": "prod_191baaa0476acb0c", "type": "coprodutor", "commission_percent": 56.0,  "platform": "Paradise"},
+    {"name": "Alavancagem Virtual",   "hash": "prod_c2d197a7924f1910", "type": "coprodutor", "commission_percent": 57.0,  "platform": "Paradise"},
+    {"name": "Duplo Green",           "hash": "prod_1a0b5c845100dd24", "type": "coprodutor", "commission_percent": 80.0,  "platform": "Paradise"},
+    {"name": "Fut Cashout",           "hash": "prod_99fafbc2a96c8333", "type": "coprodutor", "commission_percent": 80.0,  "platform": "Paradise"},
+    {"name": "Gabriel Cashout",       "hash": "prod_27ef277e291b278f", "type": "coprodutor", "commission_percent": 67.0,  "platform": "Paradise"},
+    {"name": "Breno Futebol Virtual", "hash": "prod_2b5bc174f21dd96d", "type": "coprodutor", "commission_percent": 67.0,  "platform": "Paradise"},
+    {"name": "Grupo Lancamento",      "hash": "prod_696727e36448b777", "type": "coprodutor", "commission_percent": 100.0, "platform": "Paradise"},
 ]
 
 
 def seed_products():
-    """Insere produtos iniciais no Supabase (idempotente por nome)."""
+    """Insere/atualiza produtos no Supabase (idempotente por hash)."""
     sb = get_supabase()
     if not sb:
         return
     try:
         for p in INITIAL_PRODUCTS:
-            sb.table("products").upsert(p, on_conflict="name").execute()
-        logger.info("✅ [Products] Produtos iniciais verificados/inseridos.")
+            sb.table("products").upsert(p, on_conflict="hash").execute()
+        logger.info("✅ [Products] Produtos verificados/inseridos por hash.")
     except Exception as e:
         logger.error(f"❌ [Products] Erro no seed: {e}")
 
 
-def get_product_by_name(name: str) -> Optional[dict]:
-    """Busca produto por nome (case-insensitive, busca parcial)."""
+def get_product_by_hash(product_hash: str) -> Optional[dict]:
+    """Busca produto pelo hash da Paradise (lookup exato e rápido)."""
+    if not product_hash:
+        return None
     sb = get_supabase()
     if not sb:
         return None
     try:
-        res = sb.table("products").select("*").eq("is_active", True).execute()
-        products = res.data or []
-        name_lower = name.lower().strip()
-        # Busca exata primeiro
-        for p in products:
-            if p["name"].lower().strip() == name_lower:
-                return p
-        # Busca parcial (produto contém o nome ou vice-versa)
-        for p in products:
-            pn = p["name"].lower().strip()
-            if pn in name_lower or name_lower in pn:
-                return p
-        return None
+        res = sb.table("products").select("*").eq("hash", product_hash).eq("is_active", True).limit(1).execute()
+        return res.data[0] if res.data else None
     except Exception as e:
-        logger.error(f"[Products] Erro ao buscar produto '{name}': {e}")
+        logger.error(f"[Products] Erro ao buscar hash '{product_hash}': {e}")
         return None
 
 
@@ -92,7 +88,8 @@ def list_products():
 
 class ProductPayload(BaseModel):
     name: str
-    type: str = "coprodutor"           # 'produtor' | 'coprodutor'
+    hash: Optional[str] = None
+    type: str = "coprodutor"
     commission_percent: float = 100.0
     platform: str = "Paradise"
 
@@ -103,13 +100,16 @@ def create_product(payload: ProductPayload):
     if not sb:
         raise HTTPException(status_code=503, detail="Supabase não configurado")
     try:
-        res = sb.table("products").insert({
+        data = {
             "name":               payload.name,
             "type":               payload.type,
             "commission_percent": payload.commission_percent,
             "platform":           payload.platform,
             "is_active":          True,
-        }).execute()
+        }
+        if payload.hash:
+            data["hash"] = payload.hash
+        res = sb.table("products").insert(data).execute()
         return {"status": "ok", "product": res.data[0] if res.data else {}}
     except Exception as e:
         logger.error(f"[Products] create: {e}")
@@ -120,6 +120,7 @@ class ProductUpdatePayload(BaseModel):
     commission_percent: Optional[float] = None
     type: Optional[str] = None
     name: Optional[str] = None
+    hash: Optional[str] = None
 
 
 @router.patch("/api/products/{product_id}")
