@@ -148,32 +148,28 @@ def get_sales_today():
 @router.get("/api/sales/history")
 def get_sales_history(days: int = Query(7, ge=1, le=90)):
     """
-    Retorna o faturamento agregado por dia para os últimos N dias.
-    Resposta: [ { date, total, count }, ... ] do mais antigo ao mais novo.
+    Retorna faturamento agregado por dia para os últimos N dias.
+    Inclui breakdown por plataforma: { date, total, count, platforms: {PlatformName: value} }
     """
     sb = get_supabase()
     if sb:
         try:
-            # Calcula o início do período
             now_brt = datetime.datetime.now(BRT)
             start_brt = (now_brt - datetime.timedelta(days=days - 1)).replace(
                 hour=0, minute=0, second=0, microsecond=0
             )
             start_utc = start_brt.astimezone(datetime.timezone.utc).isoformat()
 
-            res = sb.table("sales").select("value, created_at") \
+            res = sb.table("sales").select("value, created_at, platform") \
                 .gte("created_at", start_utc) \
                 .order("created_at", desc=False) \
                 .execute()
             rows = res.data or []
 
-            # Agrupa por data (BRT)
             agg: dict = {}
             for row in rows:
-                # Converte created_at para data BRT
                 try:
                     ts_str = row["created_at"]
-                    # Supabase retorna como "2026-04-02T13:53:17+00:00" ou similar
                     if ts_str.endswith("Z"):
                         ts_str = ts_str[:-1] + "+00:00"
                     ts_utc = datetime.datetime.fromisoformat(ts_str)
@@ -183,15 +179,17 @@ def get_sales_history(days: int = Query(7, ge=1, le=90)):
                     continue
 
                 if date_key not in agg:
-                    agg[date_key] = {"date": date_key, "total": 0.0, "count": 0}
-                agg[date_key]["total"] += float(row.get("value", 0))
+                    agg[date_key] = {"date": date_key, "total": 0.0, "count": 0, "platforms": {}}
+                val = float(row.get("value", 0))
+                plat = row.get("platform") or "Outros"
+                agg[date_key]["total"] += val
                 agg[date_key]["count"] += 1
+                agg[date_key]["platforms"][plat] = agg[date_key]["platforms"].get(plat, 0.0) + val
 
-            # Preenche dias sem vendas
             result = []
             for i in range(days):
                 d = (now_brt - datetime.timedelta(days=days - 1 - i)).strftime("%Y-%m-%d")
-                result.append(agg.get(d, {"date": d, "total": 0.0, "count": 0}))
+                result.append(agg.get(d, {"date": d, "total": 0.0, "count": 0, "platforms": {}}))
             return {"history": result, "source": "supabase"}
         except Exception as e:
             logger.error(f"[Supabase] Erro ao buscar histórico: {e}")
@@ -244,6 +242,40 @@ def get_sales_range(start: str = Query(...), end: str = Query(...)):
             logger.error(f"[Supabase] Erro ao buscar range: {e}")
 
     return {"range": [], "source": "none", "error": "Supabase não configurado"}
+
+
+@router.patch("/api/sales/{sale_id}")
+async def patch_sale(sale_id: str, request: Request):
+    """Edita o valor de uma venda existente."""
+    body = await request.json()
+    new_value = body.get("value")
+    if new_value is None:
+        raise HTTPException(status_code=400, detail="Campo 'value' obrigatório")
+    try:
+        new_value = float(new_value)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Valor inválido")
+
+    # Supabase
+    sb = get_supabase()
+    if sb:
+        try:
+            sb.table("sales").update({"value": new_value}).eq("id", sale_id).execute()
+        except Exception as e:
+            logger.error(f"[Supabase] Erro ao editar venda {sale_id}: {e}")
+
+    # SQLite
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("UPDATE sales SET value=? WHERE id=?", (new_value, sale_id))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error(f"[SQLite] Erro ao editar venda {sale_id}: {e}")
+
+    # Notifica SSE com evento de atualização
+    await sales_queue.put({"__action": "update", "id": sale_id, "value": new_value})
+    return {"status": "ok", "id": sale_id, "value": new_value}
 
 
 @router.delete("/api/sales/{sale_id}")
@@ -308,8 +340,11 @@ async def sales_stream(request: Request):
                 break
             try:
                 sale_data = await asyncio.wait_for(sales_queue.get(), timeout=1.0)
-                if sale_data.get("__action") == "delete":
+                action = sale_data.get("__action")
+                if action == "delete":
                     yield {"event": "delete_sale", "data": json.dumps(sale_data)}
+                elif action == "update":
+                    yield {"event": "update_sale", "data": json.dumps(sale_data)}
                 else:
                     yield {"event": "new_sale", "data": json.dumps(sale_data)}
             except asyncio.TimeoutError:
@@ -576,8 +611,16 @@ async def xp_webhook(request: Request):
         return {"status": "error"}
 
 
+def _paradise_liquid(gross_cents: float) -> float:
+    """Calcula valor líquido após taxa Paradise: 4,99% + R$1,59."""
+    gross = gross_cents / 100.0
+    liquid = round(gross * (1 - 0.0499) - 1.59, 2)
+    return max(liquid, 0.0)
+
+
 @router.post("/webhooks/paradise")
 async def paradise_webhook(request: Request):
+    """Vendas onde Circle Digital é PRODUTOR (recebe líquido ou líquido - % co-prod)."""
     try:
         try:
             payload = await request.json()
@@ -588,27 +631,24 @@ async def paradise_webhook(request: Request):
         if len(DEBUG_PAYLOADS) > 10:
             DEBUG_PAYLOADS.pop(0)
 
-        # Só processa transações aprovadas
         status = str(payload.get("status", "")).lower()
         raw_status = str(payload.get("raw_status", "")).lower()
         if status not in ("approved", "aprovado") and raw_status not in ("approved", "aprovado"):
             return {"message": f"Ignorado - status: {status}"}
 
-        tx_id   = payload.get("transaction_id", uuid.uuid4().hex[:12])
-        customer = payload.get("customer", {})
-        name    = customer.get("name", "Cliente")
+        tx_id       = payload.get("transaction_id", uuid.uuid4().hex[:12])
+        customer    = payload.get("customer", {})
+        name        = customer.get("name", "Cliente")
         product_obj = payload.get("product", {})
-        product = product_obj.get("name", "Produto Oculto")
+        product     = product_obj.get("name", "Produto Oculto")
 
-        # amount vem em centavos (ex: 100 = R$1,00)
-        # Desconta taxa da plataforma: 4,99% variável + R$1,59 fixo por venda
-        try:
-            gross = float(payload.get("amount", 0)) / 100.0
-            val = round(gross * (1 - 0.0499) - 1.59, 2)
-            if val < 0:
-                val = 0.0
-        except Exception:
-            val = 0.0
+        liquid = _paradise_liquid(float(payload.get("amount", 0)))
+
+        # Se for ZeroLoss Virtual, desconta 16,66% do co-produtor
+        if "zeroloss virtual" in product.lower() or "zero loss virtual" in product.lower():
+            val = round(liquid * (1 - 0.1666), 2)
+        else:
+            val = liquid
 
         sale_event = {
             "id":       f"paradise_{tx_id}",
@@ -619,8 +659,61 @@ async def paradise_webhook(request: Request):
         }
         save_sale(sale_event)
         await sales_queue.put(sale_event)
-        logger.info(f"[Paradise] {name} - {product} - R${val:.2f}")
+        logger.info(f"[Paradise/Produtor] {name} - {product} - R${val:.2f}")
         return {"status": "ok"}
     except Exception as e:
         logger.error(f"Erro Paradise webhook: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@router.post("/webhooks/paradise/coproducao")
+async def paradise_coproducao_webhook(request: Request):
+    """Vendas onde Circle Digital é COPRODUTOR — aplica % de comissão por produto."""
+    try:
+        try:
+            payload = await request.json()
+        except Exception:
+            payload = dict(await request.form())
+
+        DEBUG_PAYLOADS.append({"platform": "Paradise/Coprod", "payload": payload})
+        if len(DEBUG_PAYLOADS) > 10:
+            DEBUG_PAYLOADS.pop(0)
+
+        status = str(payload.get("status", "")).lower()
+        raw_status = str(payload.get("raw_status", "")).lower()
+        if status not in ("approved", "aprovado") and raw_status not in ("approved", "aprovado"):
+            return {"message": f"Ignorado - status: {status}"}
+
+        tx_id       = payload.get("transaction_id", uuid.uuid4().hex[:12])
+        customer    = payload.get("customer", {})
+        name        = customer.get("name", "Cliente")
+        product_obj = payload.get("product", {})
+        product     = product_obj.get("name", "Produto Oculto")
+
+        liquid = _paradise_liquid(float(payload.get("amount", 0)))
+
+        # Busca comissão do produto no Supabase
+        from products import get_product_by_name
+        prod_cfg = get_product_by_name(product)
+        if prod_cfg and prod_cfg.get("commission_percent"):
+            commission = float(prod_cfg["commission_percent"]) / 100.0
+        else:
+            commission = 1.0  # sem cadastro → 100% do líquido
+            logger.warning(f"[Paradise/Coprod] Produto '{product}' não cadastrado, usando 100%")
+
+        val = round(liquid * commission, 2)
+
+        sale_event = {
+            "id":       f"paradise_cp_{tx_id}",
+            "name":     name,
+            "product":  product,
+            "value":    val,
+            "platform": "Paradise",
+        }
+        save_sale(sale_event)
+        await sales_queue.put(sale_event)
+        logger.info(f"[Paradise/Coprod] {name} - {product} ({commission*100:.0f}%) - R${val:.2f}")
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Erro Paradise/coproducao webhook: {e}")
         return {"status": "error", "message": str(e)}

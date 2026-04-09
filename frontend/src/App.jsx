@@ -5,6 +5,7 @@ import BroadcastComposer from './components/BroadcastComposer';
 import BroadcastHistory from './components/BroadcastHistory';
 import SalesDashboard from './components/SalesDashboard';
 import TasksPanel from './components/TasksPanel';
+import ProductsAdmin from './components/ProductsAdmin';
 import ConnectionStatus from './components/ConnectionStatus';
 import LoginPage, { isAuthenticated } from './components/LoginPage';
 
@@ -60,7 +61,8 @@ const IconMenu = () => (
 function App() {
   const [authed, setAuthed]         = useState(isAuthenticated());
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab]   = useState('aovivo');
+  const getInitialTab = () => window.location.pathname === '/dash/produtos' ? 'produtos' : 'aovivo';
+  const [activeTab, setActiveTab]   = useState(getInitialTab);
   const [theme, setTheme]           = useState('dark');
 
   useEffect(() => {
@@ -245,6 +247,9 @@ function App() {
 
             {/* Aba: Rotinas */}
             {activeTab === 'rotinas' && <TasksPanel />}
+
+            {/* Aba: Produtos (rota oculta /dash/produtos) */}
+            {activeTab === 'produtos' && <ProductsAdmin />}
 
             {/* Aba: Ao Vivo (default) */}
             {activeTab === 'aovivo' && <SalesDashboard />}

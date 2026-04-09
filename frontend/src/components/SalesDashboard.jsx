@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil, Check, X } from 'lucide-react';
 
 export default function SalesDashboard() {
   const [summary, setSummary]           = useState({ today: 0, count: 0, ticket: 0 });
@@ -14,6 +14,8 @@ export default function SalesDashboard() {
     Pix:                 { value: 0, color: '#a78bfa', label: 'Pix' },
   });
   const [recentSales, setRecentSales] = useState([]);
+  const [editingId, setEditingId]     = useState(null);
+  const [editingVal, setEditingVal]   = useState('');
   const seenSaleIds = useRef(new Set());
 
   // ── Histórico 7 dias ────────────────────────────────────────────────────────
@@ -131,6 +133,15 @@ export default function SalesDashboard() {
         return prev.filter(s => s.id !== data.id);
       });
     });
+    es.addEventListener('update_sale', (e) => {
+      const data = JSON.parse(e.data);
+      setRecentSales(prev => prev.map(s => {
+        if (s.id !== data.id) return s;
+        const diff = data.value - s.value;
+        setSummary(sm => ({ ...sm, today: sm.today + diff, ticket: sm.count > 0 ? (sm.today + diff) / sm.count : 0 }));
+        return { ...s, value: data.value };
+      }));
+    });
     return () => es.close();
   }, []);
 
@@ -191,6 +202,26 @@ export default function SalesDashboard() {
       const res = await fetch(`/api/sales/${encodeURIComponent(sale.id)}`, { method: 'DELETE' });
       if (!res.ok) alert("Erro ao apagar venda!");
     } catch (e) { alert("Falha de conexão ao deletar."); }
+  };
+
+  const startEdit = (sale) => {
+    setEditingId(sale.id);
+    setEditingVal(sale.value.toFixed(2));
+  };
+
+  const cancelEdit = () => { setEditingId(null); setEditingVal(''); };
+
+  const confirmEdit = async (sale) => {
+    const newVal = parseFloat(editingVal.replace(',', '.'));
+    if (isNaN(newVal) || newVal < 0) { alert('Valor inválido'); return; }
+    try {
+      await fetch(`/api/sales/${encodeURIComponent(sale.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: newVal }),
+      });
+    } catch (e) { alert('Erro ao editar venda'); }
+    setEditingId(null);
   };
 
   // ── Computed ────────────────────────────────────────────────────────────────
@@ -324,28 +355,55 @@ export default function SalesDashboard() {
               Histórico disponível após configurar Supabase.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {historyData.map((day) => {
                 const isToday = day.date === todayStr;
                 const pct = maxHistory > 0 ? Math.max(3, (day.total / maxHistory) * 100) : 0;
+                const platforms = day.platforms || {};
+                const platEntries = Object.entries(platforms).filter(([,v]) => v > 0);
                 return (
-                  <div key={day.date} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ minWidth: 36, textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: isToday ? 'var(--color-green)' : 'var(--color-text-muted)' }}>{dayLabel(day.date)}</div>
-                      <div style={{ fontSize: '0.5625rem', color: '#444' }}>{shortDate(day.date)}</div>
+                  <div key={day.date}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ minWidth: 36, textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: isToday ? 'var(--color-green)' : 'var(--color-text-muted)' }}>{dayLabel(day.date)}</div>
+                        <div style={{ fontSize: '0.5625rem', color: '#444' }}>{shortDate(day.date)}</div>
+                      </div>
+                      {/* Barra segmentada por plataforma */}
+                      <div style={{ flex: 1, height: 20, background: 'var(--color-bg-elevated)', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
+                        {day.total > 0 && platEntries.length > 0 ? platEntries.map(([plat, val]) => {
+                          const platColor = platformsData[Object.keys(platformsData).find(k => k.toLowerCase() === plat.toLowerCase())]?.color || '#555';
+                          const segPct = (val / maxHistory) * 100;
+                          return (
+                            <div key={plat} title={`${plat}: ${fmtMon(val)}`} style={{
+                              width: `${segPct}%`, height: '100%', background: platColor,
+                              opacity: isToday ? 1 : 0.55,
+                              transition: 'width 0.6s ease',
+                              boxShadow: isToday ? `0 0 8px ${platColor}66` : 'none',
+                            }} />
+                          );
+                        }) : (
+                          <div style={{ width: `${day.total > 0 ? pct : 0}%`, height: '100%', background: isToday ? 'var(--color-green)' : 'rgba(34,197,94,0.3)', transition: 'width 0.6s ease' }} />
+                        )}
+                      </div>
+                      <div style={{ minWidth: 90, textAlign: 'right' }}>
+                        <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: isToday ? 'var(--color-green)' : 'var(--color-text)' }}>{fmtMon(day.total)}</div>
+                        <div style={{ fontSize: '0.5625rem', color: '#444' }}>{day.count} {day.count === 1 ? 'venda' : 'vendas'}</div>
+                      </div>
                     </div>
-                    <div style={{ flex: 1, height: 20, background: 'var(--color-bg-elevated)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
-                      <div style={{
-                        height: '100%', width: `${day.total > 0 ? pct : 0}%`,
-                        background: isToday ? 'var(--color-green)' : 'rgba(34,197,94,0.3)',
-                        borderRadius: 4, transition: 'width 0.6s ease',
-                        boxShadow: isToday ? '0 0 10px rgba(34,197,94,0.4)' : 'none'
-                      }} />
-                    </div>
-                    <div style={{ minWidth: 90, textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: isToday ? 'var(--color-green)' : 'var(--color-text)' }}>{fmtMon(day.total)}</div>
-                      <div style={{ fontSize: '0.5625rem', color: '#444' }}>{day.count} {day.count === 1 ? 'venda' : 'vendas'}</div>
-                    </div>
+                    {/* Legenda de plataformas do dia */}
+                    {platEntries.length > 1 && (
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: 4, marginLeft: 44 }}>
+                        {platEntries.map(([plat, val]) => {
+                          const platColor = platformsData[Object.keys(platformsData).find(k => k.toLowerCase() === plat.toLowerCase())]?.color || '#555';
+                          return (
+                            <span key={plat} style={{ fontSize: '0.5625rem', color: platColor, display: 'flex', alignItems: 'center', gap: 3 }}>
+                              <span style={{ width: 5, height: 5, borderRadius: '50%', background: platColor, display: 'inline-block' }} />
+                              {plat} {fmtMon(val)}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -521,18 +579,30 @@ export default function SalesDashboard() {
                   <span style={{ fontSize: '0.75rem', color: '#444' }}>{sale.product}</span>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-green)', marginBottom: 2 }}>
-                    {fmtMon(sale.value)}
-                    <button
-                      onClick={() => handleDeleteSale(sale)}
-                      style={{ background: 'transparent', border: 'none', color: '#333', cursor: 'pointer', padding: '0 0 0 6px', verticalAlign: 'middle' }}
-                      title="Remover"
-                      onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                      onMouseLeave={e => e.currentTarget.style.color = '#333'}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
+                  {editingId === sale.id ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>R$</span>
+                      <input
+                        autoFocus
+                        value={editingVal}
+                        onChange={e => setEditingVal(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') confirmEdit(sale); if (e.key === 'Escape') cancelEdit(); }}
+                        style={{ width: 80, background: 'var(--color-bg-elevated)', border: '1px solid var(--color-green)', borderRadius: 4, color: 'var(--color-text)', fontSize: '0.875rem', padding: '2px 6px', outline: 'none', textAlign: 'right' }}
+                      />
+                      <button onClick={() => confirmEdit(sale)} style={{ background: 'none', border: 'none', color: 'var(--color-green)', cursor: 'pointer', padding: 2, display: 'flex' }}><Check size={13} /></button>
+                      <button onClick={cancelEdit} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', padding: 2, display: 'flex' }}><X size={13} /></button>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-green)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
+                      {fmtMon(sale.value)}
+                      <button onClick={() => startEdit(sale)} style={{ background: 'transparent', border: 'none', color: '#333', cursor: 'pointer', padding: '0 0 0 2px', display: 'flex' }} title="Editar valor" onMouseEnter={e => e.currentTarget.style.color = '#facc15'} onMouseLeave={e => e.currentTarget.style.color = '#333'}>
+                        <Pencil size={11} />
+                      </button>
+                      <button onClick={() => handleDeleteSale(sale)} style={{ background: 'transparent', border: 'none', color: '#333', cursor: 'pointer', padding: 0, display: 'flex' }} title="Remover" onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#333'}>
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  )}
                   <div style={{ fontSize: '0.6875rem', color: '#444' }}>{sale.time}</div>
                 </div>
               </div>
