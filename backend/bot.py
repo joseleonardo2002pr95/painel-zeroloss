@@ -23,7 +23,8 @@ from history import add_record
 
 load_dotenv()
 TOKEN    = os.getenv("TELEGRAM_BOT_TOKEN", "")
-ADMIN_ID = int(os.getenv("TELEGRAM_ADMIN_ID", "0"))
+_admin_raw = os.getenv("TELEGRAM_ADMIN_ID", "0").strip()
+ADMIN_ID   = int(_admin_raw) if _admin_raw.lstrip("-").isdigit() else 0
 
 
 # ── Diagnóstico ────────────────────────────────────────────────────────────────
