@@ -117,9 +117,11 @@ async def send_broadcast(job_id: str, target_ids: list, messages: list, jobs: di
         staging_id    = ADMIN_ID if ADMIN_ID else int(target_ids[0])
         skip_first    = (not ADMIN_ID)   # primeiro lead foi usado como staging
 
+        jobs[job_id]["phase"] = "staging"
         print(f"[bot] Staging para chat_id={staging_id}...")
         try:
             staged = await _stage_all(bot, messages, staging_id)
+            jobs[job_id]["phase"] = "sending"
             print(f"[bot] {len(staged)} bloco(s) staged — iniciando copy_message loop")
         except Exception as e:
             err = f"Falha no staging: {type(e).__name__}: {e}"

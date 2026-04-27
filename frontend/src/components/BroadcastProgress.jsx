@@ -27,7 +27,7 @@ export default function BroadcastProgress({ jobId, onClose }) {
     return () => es.close();
   }, [jobId]);
 
-  const { total, sent, failed, status, last_error, error_sample } = job;
+  const { total, sent, failed, status, last_error, error_sample, phase } = job;
   const processed = sent + failed;
   const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
   const isDone = status === 'done';
@@ -64,7 +64,7 @@ export default function BroadcastProgress({ jobId, onClose }) {
             : <Loader2 size={18} style={{ color: 'var(--color-green)', animation: 'spin 1s linear infinite' }} />
           }
           <span style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--color-text)' }}>
-            {isDone ? 'Disparo Concluído' : isCanceled ? 'Disparo Cancelado' : 'Disparo em Andamento…'}
+            {isDone ? 'Disparo Concluído' : isCanceled ? 'Disparo Cancelado' : phase === 'staging' ? '⏳ Enviando mídia para staging…' : 'Disparo em Andamento…'}
           </span>
           {!isDone && !isCanceled && (
              isConfirming ? (
