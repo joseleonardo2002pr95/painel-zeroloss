@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from sheets import get_audience_data, get_last_updated
-from bot import send_broadcast
+from bot import send_broadcast, test_send_one
 from history import add_record, get_records
 import sales
 import tasks
@@ -133,6 +133,45 @@ def force_refresh():
     from sheets import _refresh
     _refresh()
     return {"status": "ok"}
+
+
+@app.get("/api/broadcast/diagnose")
+async def diagnose_bot():
+    """
+    Diagnóstico rápido: verifica token + tenta enviar para o primeiro lead/cliente.
+    Retorna o erro exato sem precisar rodar o disparo completo.
+    """
+    from bot import Bot
+    import os
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    if not token:
+        return {"token_set": False, "error": "TELEGRAM_BOT_TOKEN não está configurado"}
+
+    # Verifica o token
+    try:
+        bot = Bot(token=token)
+        me = await bot.get_me()
+        bot_info = {"id": me.id, "username": me.username, "first_name": me.first_name}
+        await bot.session.close()
+    except Exception as e:
+        return {"token_set": True, "bot_ok": False, "error": f"{type(e).__name__}: {e}"}
+
+    # Pega o primeiro ID da lista de leads
+    cache = get_audience_data()
+    data = cache.get("data", {})
+    first_lead = (data.get("leads") or data.get("clients") or [None])[0]
+
+    if not first_lead:
+        return {"token_set": True, "bot_ok": True, "bot_info": bot_info, "error": "Nenhum lead/cliente na planilha"}
+
+    result = await test_send_one(int(first_lead), "🔧 Teste de diagnóstico do bot — pode ignorar.")
+    return {
+        "token_set": True,
+        "bot_ok": True,
+        "bot_info": bot_info,
+        "test_send": result,
+        "first_id_tested": first_lead,
+    }
 
 
 @app.post("/api/broadcast")
