@@ -141,7 +141,7 @@ async def diagnose_bot():
     Diagnóstico rápido: verifica token + tenta enviar para o primeiro lead/cliente.
     Retorna o erro exato sem precisar rodar o disparo completo.
     """
-    from bot import Bot
+    from aiogram import Bot as TGBot
     import os
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
     if not token:
@@ -149,7 +149,7 @@ async def diagnose_bot():
 
     # Verifica o token
     try:
-        bot = Bot(token=token)
+        bot = TGBot(token=token)
         me = await bot.get_me()
         bot_info = {"id": me.id, "username": me.username, "first_name": me.first_name}
         await bot.session.close()
