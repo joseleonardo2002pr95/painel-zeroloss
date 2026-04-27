@@ -1,13 +1,15 @@
 import asyncio
 import base64
-import io
-from aiogram import Bot
 import os
+from types import SimpleNamespace
+from aiogram import Bot
+from aiogram.types import BufferedInputFile
 from dotenv import load_dotenv
 from history import add_record
 
 load_dotenv()
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TOKEN      = os.getenv("TELEGRAM_BOT_TOKEN", "")
+ADMIN_ID   = int(os.getenv("TELEGRAM_ADMIN_ID", "0"))   # ID do admin para pré-upload
 
 
 async def test_send_one(chat_id: int, text: str = "✅ Teste de conectividade do bot.") -> dict:
@@ -24,31 +26,71 @@ async def test_send_one(chat_id: int, text: str = "✅ Teste de conectividade do
         await bot.session.close()
 
 
+async def _preupload(bot: Bot, messages: list, fallback_uid: int):
+    """
+    Faz upload de blocos de mídia UMA vez e retorna lista de mensagens
+    com file_id no lugar dos bytes brutos.
+
+    - Se TELEGRAM_ADMIN_ID estiver configurado, faz upload para o admin
+      (sem contaminar a lista de destinatários).
+    - Caso contrário, envia para o primeiro destinatário e retorna seu ID
+      para ser marcado como já enviado.
+
+    Retorna: (prepared_messages, already_sent_uid_or_None)
+    """
+    upload_to = ADMIN_ID if ADMIN_ID else fallback_uid
+    already_sent = None if ADMIN_ID else fallback_uid
+
+    prepared = []
+    for msg in messages:
+        if msg.type == "image_b64":
+            header, b64_data = msg.content.split(",", 1)
+            sent = await bot.send_photo(
+                chat_id=upload_to,
+                photo=BufferedInputFile(base64.b64decode(b64_data), filename="image.jpg"),
+            )
+            file_id = sent.photo[-1].file_id
+            prepared.append(SimpleNamespace(type="image_file_id", content=file_id))
+
+        elif msg.type == "video_b64":
+            header, b64_data = msg.content.split(",", 1)
+            sent = await bot.send_video(
+                chat_id=upload_to,
+                video=BufferedInputFile(base64.b64decode(b64_data), filename="video.mp4"),
+            )
+            file_id = sent.video.file_id
+            prepared.append(SimpleNamespace(type="video_file_id", content=file_id))
+
+        else:
+            prepared.append(msg)   # texto / image_url — sem mudança
+
+    return prepared, already_sent
+
+
 async def send_broadcast(job_id: str, target_ids, messages, jobs: dict):
     """Sends messages to each target_id and updates the job store."""
-    # Garante campos de debug no job
     jobs[job_id].setdefault("last_error", None)
     jobs[job_id].setdefault("error_sample", [])
 
     if not TOKEN:
         err = "TELEGRAM_BOT_TOKEN não configurado nas variáveis de ambiente."
         print(f"[bot] {err}")
-        jobs[job_id]["status"] = "done"
-        jobs[job_id]["last_error"] = err
+        jobs[job_id]["status"]       = "done"
+        jobs[job_id]["last_error"]   = err
         jobs[job_id]["error_sample"] = [err]
         add_record(dict(jobs[job_id]))
         return
 
-    # Testa o token antes de disparar para todos
+    # Verifica conectividade antes de iniciar
     try:
         bot = Bot(token=TOKEN)
         me = await bot.get_me()
-        print(f"[bot] Conectado como @{me.username} (id={me.id})")
+        print(f"[bot] Conectado como @{me.username} — iniciando disparo para {len(target_ids)} usuários")
     except Exception as e:
         err = f"Falha ao conectar ao bot: {type(e).__name__}: {e}"
         print(f"[bot] {err}")
-        jobs[job_id]["status"] = "done"
-        jobs[job_id]["last_error"] = err
+        jobs[job_id]["status"]       = "done"
+        jobs[job_id]["last_error"]   = err
         jobs[job_id]["error_sample"] = [err]
         try:
             await bot.session.close()
@@ -58,43 +100,69 @@ async def send_broadcast(job_id: str, target_ids, messages, jobs: dict):
         return
 
     try:
+        # ── Pré-upload de mídia ─────────────────────────────────────────
+        has_media = any(m.type in ("image_b64", "video_b64") for m in messages)
+        already_sent_uid = None
+        if has_media and target_ids:
+            try:
+                messages, already_sent_uid = await _preupload(bot, messages, int(target_ids[0]))
+                print(f"[bot] Pré-upload concluído — usando file_ids para o disparo")
+                if already_sent_uid:
+                    # Primeiro usuário já recebeu durante o pré-upload
+                    jobs[job_id]["sent"] += 1
+            except Exception as e:
+                err = f"Falha no pré-upload de mídia: {type(e).__name__}: {e}"
+                print(f"[bot] {err}")
+                jobs[job_id]["last_error"]   = err
+                jobs[job_id]["error_sample"] = [err]
+                jobs[job_id]["status"]       = "done"
+                jobs[job_id]["finished_at"]  = __import__("datetime").datetime.now().isoformat()
+                add_record(dict(jobs[job_id]))
+                return
+
+        # ── Loop principal ──────────────────────────────────────────────
         for uid in target_ids:
-            # Verifica se o usuário mandou cancelar via API
             if jobs[job_id]["status"] == "canceled":
-                print(f"Job {job_id} cancelado pelo usuário.")
+                print(f"[bot] Job {job_id} cancelado.")
                 break
+
+            uid_int = int(uid)
+
+            # Pula o primeiro usuário se ele já recebeu no pré-upload
+            if already_sent_uid and uid_int == already_sent_uid:
+                continue
 
             success = True
             for msg in messages:
                 try:
-                    uid_int = int(uid)  # Telegram exige inteiro
                     if msg.type == "text":
                         await bot.send_message(chat_id=uid_int, text=msg.content)
 
                     elif msg.type == "image_url":
                         await bot.send_photo(chat_id=uid_int, photo=msg.content)
 
+                    elif msg.type == "image_file_id":
+                        await bot.send_photo(chat_id=uid_int, photo=msg.content)
+
+                    elif msg.type == "video_file_id":
+                        await bot.send_video(chat_id=uid_int, video=msg.content)
+
+                    # Fallback: se por algum motivo chegou aqui com bytes (não deve)
                     elif msg.type == "image_b64":
                         header, b64_data = msg.content.split(",", 1)
-                        image_bytes = base64.b64decode(b64_data)
-                        from aiogram.types import BufferedInputFile
-                        await bot.send_photo(
+                        sent = await bot.send_photo(
                             chat_id=uid_int,
-                            photo=BufferedInputFile(file=image_bytes, filename="image.jpg"),
+                            photo=BufferedInputFile(base64.b64decode(b64_data), filename="image.jpg"),
                         )
-
                     elif msg.type == "video_b64":
                         header, b64_data = msg.content.split(",", 1)
-                        video_bytes = base64.b64decode(b64_data)
-                        from aiogram.types import BufferedInputFile
-                        await bot.send_video(
+                        sent = await bot.send_video(
                             chat_id=uid_int,
-                            video=BufferedInputFile(file=video_bytes, filename="video.mp4"),
+                            video=BufferedInputFile(base64.b64decode(b64_data), filename="video.mp4"),
                         )
 
                 except Exception as e:
-                    err_msg = f"uid={uid} | {type(e).__name__}: {e}"
-                    print(f"[bot] Falha: {err_msg}")
+                    print(f"[bot] Falha uid={uid}: {type(e).__name__}: {e}")
                     jobs[job_id]["last_error"] = str(e)
                     sample = jobs[job_id]["error_sample"]
                     err_key = f"{type(e).__name__}: {str(e)[:120]}"
@@ -110,7 +178,6 @@ async def send_broadcast(job_id: str, target_ids, messages, jobs: dict):
             else:
                 jobs[job_id]["failed"] += 1
 
-            # Persiste progresso parcial a cada 50 usuários
             if (jobs[job_id]["sent"] + jobs[job_id]["failed"]) % 50 == 0:
                 add_record(dict(jobs[job_id]))
 
@@ -118,13 +185,13 @@ async def send_broadcast(job_id: str, target_ids, messages, jobs: dict):
             jobs[job_id]["status"] = "done"
 
         jobs[job_id]["finished_at"] = __import__("datetime").datetime.now().isoformat()
+
     except Exception as outer_e:
-        # Erro inesperado fora do loop (ex: falha de rede global)
         outer_err = f"Erro externo no disparo: {type(outer_e).__name__}: {outer_e}"
         print(f"[bot] {outer_err}")
         jobs[job_id]["last_error"] = outer_err
         jobs[job_id]["error_sample"].append(outer_err[:200])
-        jobs[job_id]["status"] = "done"
+        jobs[job_id]["status"]      = "done"
         jobs[job_id]["finished_at"] = __import__("datetime").datetime.now().isoformat()
     finally:
         await bot.session.close()
