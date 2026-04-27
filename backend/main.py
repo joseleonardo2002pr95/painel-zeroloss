@@ -50,14 +50,16 @@ broadcast_jobs: Dict[str, Any] = {}
 def new_job(total: int, target: str) -> str:
     job_id = str(uuid.uuid4())
     broadcast_jobs[job_id] = {
-        "job_id":     job_id,
-        "status":     "running",
-        "target":     target,
-        "total":      total,
-        "sent":       0,
-        "failed":     0,
-        "started_at": datetime.now().isoformat(),
+        "job_id":      job_id,
+        "status":      "running",
+        "target":      target,
+        "total":       total,
+        "sent":        0,
+        "failed":      0,
+        "started_at":  datetime.now().isoformat(),
         "finished_at": None,
+        "last_error":  None,
+        "error_sample": [],
     }
     # Persiste imediatamente para sobreviver a reinícios
     add_record(dict(broadcast_jobs[job_id]))

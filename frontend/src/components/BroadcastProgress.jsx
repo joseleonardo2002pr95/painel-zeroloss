@@ -27,7 +27,7 @@ export default function BroadcastProgress({ jobId, onClose }) {
     return () => es.close();
   }, [jobId]);
 
-  const { total, sent, failed, status } = job;
+  const { total, sent, failed, status, last_error, error_sample } = job;
   const processed = sent + failed;
   const pct = total > 0 ? Math.round((processed / total) * 100) : 0;
   const isDone = status === 'done';
@@ -121,6 +121,32 @@ export default function BroadcastProgress({ jobId, onClose }) {
         <MiniStat icon={<XCircle size={14} />} label="Falhas" value={failed} color="#ef4444" />
         <MiniStat icon={null} label="Progresso" value={`${pct}%`} color={isDone ? 'var(--color-green)' : isCanceled ? '#ef4444' : 'var(--color-text-subtle)'} />
       </div>
+
+      {/* Painel de erros (debug) */}
+      {isDone && failed > 0 && error_sample && error_sample.length > 0 && (
+        <div style={{
+          marginTop: '1rem',
+          background: 'rgba(239,68,68,0.06)',
+          border: '1px solid rgba(239,68,68,0.25)',
+          borderRadius: 8,
+          padding: '0.75rem 1rem',
+        }}>
+          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#ef4444', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 6 }}>
+            ⚠ Erros detectados (amostra)
+          </div>
+          {error_sample.map((e, i) => (
+            <div key={i} style={{
+              fontFamily: 'monospace', fontSize: '0.75rem',
+              color: '#fca5a5', lineHeight: 1.5,
+              borderBottom: i < error_sample.length - 1 ? '1px solid rgba(239,68,68,0.15)' : 'none',
+              paddingBottom: i < error_sample.length - 1 ? 4 : 0,
+              marginBottom: i < error_sample.length - 1 ? 4 : 0,
+            }}>
+              {i + 1}. {e}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Spin keyframe (inline) */}
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
