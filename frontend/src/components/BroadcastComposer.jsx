@@ -82,7 +82,11 @@ export default function BroadcastComposer() {
       toast.error('Adicione pelo menos um bloco de mensagem.');
       return;
     }
-    if (messages.some(m => !m.content.trim())) {
+    const hasEmpty = messages.some(m => {
+      if (m.type === 'text') return !m.content.trim();
+      return !m.preview; // image_b64 / video_b64: preview is set only after file is selected
+    });
+    if (hasEmpty) {
       toast.error('Preencha o conteúdo de todos os blocos.');
       return;
     }
