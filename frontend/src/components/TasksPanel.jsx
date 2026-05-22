@@ -239,7 +239,6 @@ export default function TasksPanel() {
           done={dailyDone}
           onToggle={handleToggle}
           onDelete={handleDelete}
-          onDeleteAndRefresh={async (task) => { await handleDelete(task); }}
           updating={updating}
         />
       )}
@@ -280,20 +279,70 @@ export default function TasksPanel() {
 // ─────────────────────────────────────────────────────────────────────────────
 // ── SEÇÃO DIÁRIA COM KANBAN INTEGRADO (responsiva) ───────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
-function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, onDeleteAndRefresh, updating }) {
-  const STORAGE_KEY = 'zl_task_assignments_v2';
+function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }) {
   const isMobile = useIsMobile();
 
+  // Inicializa assignments a partir do campo `assignee` vindo do banco
   const [assignments, setAssignments] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
-    catch { return {}; }
+    const m = {};
+    tasks.forEach(t => { if (t.assignee) m[t.id] = t.assignee; });
+    return m;
   });
+
+  // Sincroniza quando tasks são re-buscadas (mantém estado do servidor)
+  useEffect(() => {
+    const fromServer = {};
+    tasks.forEach(t => { if (t.assignee) fromServer[t.id] = t.assignee; });
+    setAssignments(fromServer);
+  }, [tasks]);
+
   const [draggingId, setDraggingId]   = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
+  const [saving, setSaving]           = useState({}); // { taskId: true }
 
-  const persist = (next) => { setAssignments(next); localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); };
-  const assign   = (id, memberId) => persist({ ...assignments, [id]: memberId });
-  const unassign = (id) => { const n = { ...assignments }; delete n[id]; persist(n); };
+  // Salva atribuição no banco (com update otimista)
+  const assign = async (taskId, memberId) => {
+    setAssignments(prev => ({ ...prev, [taskId]: memberId }));
+    setSaving(prev => ({ ...prev, [taskId]: true }));
+    try {
+      await fetch(`/api/tasks/${taskId}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignee: memberId }),
+      });
+    } catch (e) {
+      console.error('Erro ao salvar atribuição:', e);
+      // Reverte em caso de erro
+      setAssignments(prev => { const n = { ...prev }; delete n[taskId]; return n; });
+    } finally {
+      setSaving(prev => { const n = { ...prev }; delete n[taskId]; return n; });
+    }
+  };
+
+  const unassign = async (taskId) => {
+    setAssignments(prev => { const n = { ...prev }; delete n[taskId]; return n; });
+    setSaving(prev => ({ ...prev, [taskId]: true }));
+    try {
+      await fetch(`/api/tasks/${taskId}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignee: null }),
+      });
+    } catch (e) {
+      console.error('Erro ao remover atribuição:', e);
+    } finally {
+      setSaving(prev => { const n = { ...prev }; delete n[taskId]; return n; });
+    }
+  };
+
+  const clearAll = async () => {
+    setAssignments({});
+    try {
+      await fetch('/api/tasks/clear-assignments', { method: 'POST' });
+    } catch (e) {
+      console.error('Erro ao limpar atribuições:', e);
+    }
+  };
 
   // Desktop drag handlers
   const handleDragStart = (e, taskId) => { setDraggingId(taskId); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', taskId); };
@@ -332,7 +381,7 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, onDeleteAn
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
           {assignedCount > 0 && (
-            <button onClick={() => persist({})}
+            <button onClick={clearAll}
               style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', borderRadius:4, whiteSpace:'nowrap' }}
               onMouseEnter={e => e.currentTarget.style.color='#ef4444'}
               onMouseLeave={e => e.currentTarget.style.color='var(--color-text-muted)'}

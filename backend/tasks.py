@@ -234,3 +234,37 @@ def complete_task(task_id: str, payload: CompletePayload):
     except Exception as e:
         logger.error(f"[Tasks] Erro ao completar tarefa {task_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── Atribuição de tarefa a um membro ─────────────────────────────────────────
+
+class AssignPayload(BaseModel):
+    assignee: Optional[str] = None   # 'augusto' | 'jose' | None
+
+
+@router.patch("/api/tasks/{task_id}/assign")
+def assign_task(task_id: str, payload: AssignPayload):
+    """Salva (ou remove) a atribuição de uma tarefa a um membro."""
+    sb = get_supabase()
+    if not sb:
+        raise HTTPException(status_code=503, detail="Supabase não configurado")
+    try:
+        sb.table("tasks").update({"assignee": payload.assignee}).eq("id", task_id).execute()
+        return {"status": "ok", "task_id": task_id, "assignee": payload.assignee}
+    except Exception as e:
+        logger.error(f"[Tasks] Erro ao atribuir tarefa {task_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/tasks/clear-assignments")
+def clear_all_assignments():
+    """Remove a atribuição de todas as tarefas ativas."""
+    sb = get_supabase()
+    if not sb:
+        raise HTTPException(status_code=503, detail="Supabase não configurado")
+    try:
+        sb.table("tasks").update({"assignee": None}).eq("is_active", True).execute()
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"[Tasks] Erro ao limpar atribuições: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
