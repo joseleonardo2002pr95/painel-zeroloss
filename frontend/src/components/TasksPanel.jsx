@@ -79,6 +79,7 @@ const MEMBERS = [
 // ── Frequências ───────────────────────────────────────────────────────────────
 const FREQ_OPTIONS = [
   { value: 'daily',      label: 'Diária',                type: 'daily'      },
+  { value: 'once',       label: 'Somente hoje',          type: 'daily'      },
   { value: 'weekly',     label: 'Semanal',               type: 'weekly'     },
   { value: 'continuous', label: 'Contínua / Meta',       type: 'continuous' },
   { value: 'custom',     label: 'Personalizada (N dias)', type: 'daily'     },
@@ -101,7 +102,28 @@ export default function TasksPanel() {
       const res  = await fetch('/api/tasks');
       if (!res.ok) throw new Error('Erro ao buscar tarefas');
       const data = await res.json();
-      if (data.error) { setError(data.error); } else { setTasks(data.tasks || []); setError(null); }
+      if (data.error) {
+        setError(data.error);
+      } else {
+        let fetched = data.tasks || [];
+
+        // ── Auto-excluir tarefas "Somente hoje" de dias anteriores ──────────
+        const todayStr = getBrtDate().toISOString().slice(0, 10); // YYYY-MM-DD BRT
+        const expired  = fetched.filter(t => {
+          if (t.frequency !== 'once') return false;
+          const createdBrt = new Date(new Date(t.created_at).getTime() - 3 * 60 * 60 * 1000);
+          return createdBrt.toISOString().slice(0, 10) < todayStr;
+        });
+        if (expired.length > 0) {
+          await Promise.all(expired.map(t => fetch(`/api/tasks/${t.id}`, { method: 'DELETE' })));
+          const expiredIds = new Set(expired.map(t => t.id));
+          fetched = fetched.filter(t => !expiredIds.has(t.id));
+        }
+        // ────────────────────────────────────────────────────────────────────
+
+        setTasks(fetched);
+        setError(null);
+      }
     } catch (e) { setError(e.message); }
     finally     { setLoading(false); }
   }, []);
@@ -159,7 +181,7 @@ export default function TasksPanel() {
   };
 
   // ── Agrupamentos ────────────────────────────────────────────────────────────
-  const dailyTasks      = tasks.filter(t => t.frequency === 'daily' || t.frequency === 'custom');
+  const dailyTasks      = tasks.filter(t => ['daily','custom','once'].includes(t.frequency));
   const weeklyTasks     = tasks.filter(t => t.frequency === 'weekly');
   const continuousTasks = tasks.filter(t => t.frequency === 'continuous');
   const dailyDone  = dailyTasks.filter(t => t.completed).length;
@@ -217,6 +239,7 @@ export default function TasksPanel() {
           done={dailyDone}
           onToggle={handleToggle}
           onDelete={handleDelete}
+          onDeleteAndRefresh={async (task) => { await handleDelete(task); }}
           updating={updating}
         />
       )}
@@ -257,7 +280,7 @@ export default function TasksPanel() {
 // ─────────────────────────────────────────────────────────────────────────────
 // ── SEÇÃO DIÁRIA COM KANBAN INTEGRADO (responsiva) ───────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
-function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }) {
+function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, onDeleteAndRefresh, updating }) {
   const STORAGE_KEY = 'zl_task_assignments_v2';
   const isMobile = useIsMobile();
 
@@ -474,6 +497,7 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onAssign={assign}
+                onDelete={onDelete}
               />
             ))}
           </div>
@@ -560,9 +584,14 @@ function KanbanTaskCard({ task, member, isDragging, isUpdating, isMobile, onDrag
           }}>
             {task.title}
           </div>
-          <div style={{ display:'flex', gap:4, marginTop:3, flexWrap:'wrap' }}>
+          <div style={{ display:'flex', gap:4, marginTop:3, flexWrap:'wrap', alignItems:'center' }}>
             <Tag color={color}>{task.project}</Tag>
             {task.custom_interval_days && <Tag color="#6b7280">a cada {task.custom_interval_days}d</Tag>}
+            {task.frequency === 'once' && (
+              <span style={{ fontSize:'0.5625rem', fontWeight:700, padding:'2px 6px', borderRadius:99, background:'rgba(251,146,60,0.15)', color:'#fb923c', border:'1px solid rgba(251,146,60,0.3)' }}>
+                só hoje
+              </span>
+            )}
           </div>
         </div>
 
@@ -608,10 +637,12 @@ function KanbanTaskCard({ task, member, isDragging, isUpdating, isMobile, onDrag
 }
 
 // ── Chip na fila (pool) ───────────────────────────────────────────────────────
-function PoolTaskChip({ task, isDragging, isMobile, onDragStart, onDragEnd, onAssign }) {
+function PoolTaskChip({ task, isDragging, isMobile, onDragStart, onDragEnd, onAssign, onDelete }) {
   const [hover, setHover] = useState(false);
-  const color = projectColor(task.project);
-  const done  = task.completed;
+  const color   = projectColor(task.project);
+  const done    = task.completed;
+  const isOnce  = task.frequency === 'once';
+  const showActions = isMobile || hover;
 
   return (
     <div
@@ -623,7 +654,9 @@ function PoolTaskChip({ task, isDragging, isMobile, onDragStart, onDragEnd, onAs
       style={{
         display:'flex', alignItems:'center', gap:8,
         background: hover ? 'var(--color-bg-card)' : 'var(--color-bg-base)',
-        border:`1px solid ${hover ? 'var(--color-border-hover)' : 'var(--color-border)'}`,
+        border:`1px solid ${isOnce
+          ? (hover ? 'rgba(251,146,60,0.5)' : 'rgba(251,146,60,0.25)')
+          : (hover ? 'var(--color-border-hover)' : 'var(--color-border)')}`,
         borderRadius:10,
         padding: isMobile ? '0.625rem 0.875rem' : '6px 10px',
         cursor: isMobile ? 'default' : 'grab',
@@ -661,32 +694,56 @@ function PoolTaskChip({ task, isDragging, isMobile, onDragStart, onDragEnd, onAs
         {task.title}
       </span>
 
+      {/* Badge "só hoje" */}
+      {isOnce && (
+        <span style={{
+          fontSize:'0.5625rem', fontWeight:700, padding:'2px 6px', borderRadius:99,
+          background:'rgba(251,146,60,0.15)', color:'#fb923c',
+          border:'1px solid rgba(251,146,60,0.3)', whiteSpace:'nowrap', flexShrink:0,
+        }}>
+          só hoje
+        </span>
+      )}
+
       {/* Tag do projeto */}
       <Tag color={color}>{task.project}</Tag>
 
-      {/* Mobile: botões de atribuição rápida */}
-      {isMobile && (
-        <div style={{ display:'flex', gap:5, flexShrink:0 }}>
-          {MEMBERS.map(m => (
+      {/* Ações — atribuição rápida (mobile) + excluir */}
+      {showActions && (
+        <div style={{ display:'flex', gap:5, flexShrink:0, alignItems:'center' }}>
+          {/* Atribuição rápida no mobile */}
+          {isMobile && MEMBERS.map(m => (
             <button
               key={m.id}
               onClick={() => onAssign(task.id, m.id)}
               title={`Atribuir a ${m.name}`}
               style={{
                 width:26, height:26, borderRadius:7,
-                background: m.gradient,
-                border:'none', cursor:'pointer',
+                background: m.gradient, border:'none', cursor:'pointer',
                 display:'flex', alignItems:'center', justifyContent:'center',
                 fontSize: m.initial.length > 1 ? '0.5rem' : '0.6875rem',
                 fontWeight:800, color:'#fff',
                 boxShadow:`0 2px 6px ${m.colorGlow}`,
-                letterSpacing:'-0.5px',
-                flexShrink:0,
+                letterSpacing:'-0.5px', flexShrink:0,
               }}
             >
               {m.initial}
             </button>
           ))}
+
+          {/* Botão excluir — sempre visível no mobile, hover no desktop */}
+          <button
+            onClick={() => onDelete(task)}
+            title="Remover tarefa"
+            style={{
+              background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)',
+              borderRadius:6, cursor:'pointer', color:'#ef4444',
+              padding: isMobile ? '5px 7px' : '3px 5px',
+              display:'flex', alignItems:'center', flexShrink:0,
+            }}
+          >
+            <IconTrash />
+          </button>
         </div>
       )}
     </div>
@@ -775,15 +832,28 @@ function NewTaskModal({ onClose, onCreate }) {
 
           <Field label="Tipo / Frequência">
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-              {FREQ_OPTIONS.map(f => (
-                <button key={f.value} onClick={() => setFreq(f.value)} style={{
-                  padding:'8px 10px', borderRadius:8, fontSize:'0.8125rem', fontWeight:600,
-                  cursor:'pointer', textAlign:'left', transition:'all 0.15s',
-                  background: freq===f.value ? 'rgba(34,197,94,0.12)' : 'var(--color-bg-elevated)',
-                  border:`1px solid ${freq===f.value ? 'rgba(34,197,94,0.4)' : 'var(--color-border)'}`,
-                  color: freq===f.value ? 'var(--color-green)' : 'var(--color-text-muted)',
-                }}>{f.label}</button>
-              ))}
+              {FREQ_OPTIONS.map(f => {
+                const isOnce   = f.value === 'once';
+                const selected = freq === f.value;
+                return (
+                  <button key={f.value} onClick={() => setFreq(f.value)} style={{
+                    padding:'8px 10px', borderRadius:8, fontSize:'0.8125rem', fontWeight:600,
+                    cursor:'pointer', textAlign:'left', transition:'all 0.15s',
+                    background: selected
+                      ? (isOnce ? 'rgba(251,146,60,0.12)' : 'rgba(34,197,94,0.12)')
+                      : 'var(--color-bg-elevated)',
+                    border:`1px solid ${selected
+                      ? (isOnce ? 'rgba(251,146,60,0.45)' : 'rgba(34,197,94,0.4)')
+                      : 'var(--color-border)'}`,
+                    color: selected
+                      ? (isOnce ? '#fb923c' : 'var(--color-green)')
+                      : 'var(--color-text-muted)',
+                  }}>
+                    {f.label}
+                    {isOnce && <div style={{ fontSize:'0.625rem', fontWeight:400, marginTop:2, opacity:0.75 }}>apaga à meia-noite</div>}
+                  </button>
+                );
+              })}
             </div>
           </Field>
 
@@ -820,11 +890,16 @@ function NewTaskModal({ onClose, onCreate }) {
               }}/>
               <span style={{ fontWeight:600, color:'var(--color-text)' }}>{title || 'Título da tarefa'}</span>
             </div>
-            <div style={{ marginTop:6, display:'flex', gap:6, flexWrap:'wrap' }}>
+            <div style={{ marginTop:6, display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
               <Tag color={projectColor(finalProject)}>{finalProject || 'Projeto'}</Tag>
               <Tag color="#6b7280">{freqInfo.label}</Tag>
               {(freq==='weekly'||freq==='continuous') && <Tag color="#6b7280">Meta: {target}</Tag>}
               {freq==='custom' && <Tag color="#6b7280">A cada {interval} dias</Tag>}
+              {freq==='once' && (
+                <span style={{ fontSize:'0.5625rem', fontWeight:700, padding:'2px 6px', borderRadius:99, background:'rgba(251,146,60,0.15)', color:'#fb923c', border:'1px solid rgba(251,146,60,0.3)' }}>
+                  apaga à meia-noite
+                </span>
+              )}
             </div>
           </div>
 

@@ -108,7 +108,7 @@ def get_tasks():
         result = []
         for task in tasks:
             tid = task["id"]
-            period = today_key if task["frequency"] in ("daily", "custom") else \
+            period = today_key if task["frequency"] in ("daily", "custom", "once") else \
                      week_key  if task["frequency"] == "weekly" else \
                      "continuous"
 
@@ -200,7 +200,7 @@ def complete_task(task_id: str, payload: CompletePayload):
             raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
         freq = task.get("frequency", "daily")
-        if freq in ("daily", "custom"):
+        if freq in ("daily", "custom", "once"):
             period_key = _today_key()
         elif freq == "weekly":
             period_key = _week_key()
