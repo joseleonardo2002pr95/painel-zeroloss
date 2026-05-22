@@ -134,6 +134,15 @@ export default function TasksPanel() {
     return () => clearInterval(t);
   }, [fetchTasks]);
 
+  // ── Atribuição de tarefa (atualiza o tasks state para o useEffect não quebrar) ─
+  const handleAssignTask = useCallback((taskId, memberId) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, assignee: memberId } : t));
+  }, []);
+
+  const handleUnassignTask = useCallback((taskId) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, assignee: null } : t));
+  }, []);
+
   // ── Toggle conclusão ────────────────────────────────────────────────────────
   const handleToggle = async (task, delta) => {
     if (updating[task.id]) return;
@@ -239,6 +248,8 @@ export default function TasksPanel() {
           done={dailyDone}
           onToggle={handleToggle}
           onDelete={handleDelete}
+          onAssignTask={handleAssignTask}
+          onUnassignTask={handleUnassignTask}
           updating={updating}
         />
       )}
@@ -279,17 +290,18 @@ export default function TasksPanel() {
 // ─────────────────────────────────────────────────────────────────────────────
 // ── SEÇÃO DIÁRIA COM KANBAN INTEGRADO (responsiva) ───────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
-function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }) {
+function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, onAssignTask, onUnassignTask, updating }) {
   const isMobile = useIsMobile();
 
-  // Inicializa assignments a partir do campo `assignee` vindo do banco
+  // Assignments derivado diretamente do campo `assignee` de tasks
+  // (tasks é atualizado pelo pai quando assign/unassign acontece)
   const [assignments, setAssignments] = useState(() => {
     const m = {};
     tasks.forEach(t => { if (t.assignee) m[t.id] = t.assignee; });
     return m;
   });
 
-  // Sincroniza quando tasks são re-buscadas (mantém estado do servidor)
+  // Sincroniza assignments sempre que tasks muda (inclui mudanças de assignee do pai)
   useEffect(() => {
     const fromServer = {};
     tasks.forEach(t => { if (t.assignee) fromServer[t.id] = t.assignee; });
@@ -298,10 +310,11 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
 
   const [draggingId, setDraggingId]   = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
-  const [saving, setSaving]           = useState({}); // { taskId: true }
+  const [saving, setSaving]           = useState({});
 
-  // Salva atribuição no banco (com update otimista)
+  // Salva atribuição: atualiza tasks no pai + local state + API
   const assign = async (taskId, memberId) => {
+    onAssignTask(taskId, memberId);          // ← atualiza tasks[] no pai (corrige o useEffect)
     setAssignments(prev => ({ ...prev, [taskId]: memberId }));
     setSaving(prev => ({ ...prev, [taskId]: true }));
     try {
@@ -312,7 +325,7 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
       });
     } catch (e) {
       console.error('Erro ao salvar atribuição:', e);
-      // Reverte em caso de erro
+      onUnassignTask(taskId);
       setAssignments(prev => { const n = { ...prev }; delete n[taskId]; return n; });
     } finally {
       setSaving(prev => { const n = { ...prev }; delete n[taskId]; return n; });
@@ -320,6 +333,7 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
   };
 
   const unassign = async (taskId) => {
+    onUnassignTask(taskId);                  // ← atualiza tasks[] no pai
     setAssignments(prev => { const n = { ...prev }; delete n[taskId]; return n; });
     setSaving(prev => ({ ...prev, [taskId]: true }));
     try {
@@ -336,6 +350,7 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
   };
 
   const clearAll = async () => {
+    tasks.forEach(t => onUnassignTask(t.id)); // limpa no pai
     setAssignments({});
     try {
       await fetch('/api/tasks/clear-assignments', { method: 'POST' });
