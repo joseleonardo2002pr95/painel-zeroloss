@@ -1,4 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+// ── Hook: detecta mobile ──────────────────────────────────────────────────────
+function useIsMobile(breakpoint = 600) {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < breakpoint : false
+  );
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
 
 // ── Ícones ────────────────────────────────────────────────────────────────────
 const IconCheck   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -242,32 +255,25 @@ export default function TasksPanel() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ── SEÇÃO DIÁRIA COM KANBAN INTEGRADO ────────────────────────────────────────
+// ── SEÇÃO DIÁRIA COM KANBAN INTEGRADO (responsiva) ───────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
 function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }) {
   const STORAGE_KEY = 'zl_task_assignments_v2';
+  const isMobile = useIsMobile();
 
   const [assignments, setAssignments] = useState(() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
     catch { return {}; }
   });
-
   const [draggingId, setDraggingId]   = useState(null);
   const [dragOverCol, setDragOverCol] = useState(null);
 
-  const persist = (next) => {
-    setAssignments(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  };
-
+  const persist = (next) => { setAssignments(next); localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); };
   const assign   = (id, memberId) => persist({ ...assignments, [id]: memberId });
   const unassign = (id) => { const n = { ...assignments }; delete n[id]; persist(n); };
 
-  const handleDragStart = (e, taskId) => {
-    setDraggingId(taskId);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', taskId);
-  };
+  // Desktop drag handlers
+  const handleDragStart = (e, taskId) => { setDraggingId(taskId); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', taskId); };
   const handleDragEnd   = () => { setDraggingId(null); setDragOverCol(null); };
   const handleDragOver  = (e, col) => { e.preventDefault(); setDragOverCol(col); };
   const handleDragLeave = () => setDragOverCol(null);
@@ -275,17 +281,15 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain') || draggingId;
     if (!id) return;
-    if (col === 'pool') unassign(id);
-    else assign(id, col);
-    setDraggingId(null);
-    setDragOverCol(null);
+    col === 'pool' ? unassign(id) : assign(id, col);
+    setDraggingId(null); setDragOverCol(null);
   };
 
   const poolTasks    = tasks.filter(t => !assignments[t.id]);
   const augustoTasks = tasks.filter(t => assignments[t.id] === 'augusto');
   const joseTasks    = tasks.filter(t => assignments[t.id] === 'jose');
-
-  const allDone = done === tasks.length && tasks.length > 0;
+  const allDone      = done === tasks.length && tasks.length > 0;
+  const assignedCount = Object.keys(assignments).filter(k => tasks.find(t => t.id === k)).length;
 
   return (
     <div style={{
@@ -295,22 +299,20 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
       transition:'border-color 0.3s',
     }}>
 
-      {/* ── Cabeçalho da seção ── */}
-      <div style={{ padding:'0.875rem 1.5rem', borderBottom:'1px solid var(--color-border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <div>
-          <span style={{ fontSize:'0.875rem', fontWeight:700, color:'var(--color-text)' }}>⚡ Tarefas Diárias</span>
+      {/* ── Cabeçalho ── */}
+      <div style={{ padding:'0.875rem 1.25rem', borderBottom:'1px solid var(--color-border)', display:'flex', justifyContent:'space-between', alignItems:'center', gap:8 }}>
+        <div style={{ minWidth:0 }}>
+          <span style={{ fontSize:'0.9375rem', fontWeight:700, color:'var(--color-text)' }}>⚡ Tarefas Diárias</span>
           <div style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)', marginTop:2 }}>
             Resetam à meia-noite · {today}
           </div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          {assignments && Object.keys(assignments).filter(k => tasks.find(t => t.id === k)).length > 0 && (
-            <button
-              onClick={() => persist({})}
-              style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', borderRadius:4 }}
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+          {assignedCount > 0 && (
+            <button onClick={() => persist({})}
+              style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', borderRadius:4, whiteSpace:'nowrap' }}
               onMouseEnter={e => e.currentTarget.style.color='#ef4444'}
               onMouseLeave={e => e.currentTarget.style.color='var(--color-text-muted)'}
-              title="Limpar atribuições"
             >
               limpar
             </button>
@@ -318,14 +320,14 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
           <span style={{
             fontSize:'0.6875rem', fontWeight:700, padding:'3px 10px', borderRadius:20,
             background: allDone ? '#22c55e22' : '#f59e0b22',
-            color:       allDone ? '#22c55e'  : '#f59e0b',
-            border:      `1px solid ${allDone ? '#22c55e44' : '#f59e0b44'}`,
+            color:       allDone ? '#22c55e'   : '#f59e0b',
+            border:     `1px solid ${allDone ? '#22c55e44' : '#f59e0b44'}`,
           }}>{done}/{tasks.length}</span>
         </div>
       </div>
 
-      {/* ── Colunas dos membros ── */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:0 }}>
+      {/* ── Colunas: 2 col no desktop, empilhadas no mobile ── */}
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:0 }}>
         {MEMBERS.map((member, i) => {
           const memberTasks = member.id === 'augusto' ? augustoTasks : joseTasks;
           const isOver      = dragOverCol === member.id;
@@ -337,48 +339,45 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, member.id)}
               style={{
-                borderRight: i === 0 ? '1px solid var(--color-border)' : 'none',
+                borderRight: !isMobile && i === 0 ? '1px solid var(--color-border)' : 'none',
                 borderBottom: '1px solid var(--color-border)',
                 background: isOver
                   ? member.colorBg
-                  : `linear-gradient(180deg, ${member.colorBg} 0%, transparent 60%)`,
+                  : `linear-gradient(180deg, ${member.colorBg} 0%, transparent 70%)`,
                 transition:'background 0.2s, box-shadow 0.2s',
                 boxShadow: isOver ? `inset 0 0 0 2px ${member.colorBorderActive}` : 'none',
-                minHeight: 130,
+                minHeight: isMobile ? 80 : 120,
               }}
             >
               {/* Cabeçalho da coluna */}
-              <div style={{
-                padding:'0.75rem 1rem 0.625rem',
-                display:'flex', alignItems:'center', gap:8,
-                borderBottom: `1px solid ${member.colorBorder}`,
-              }}>
+              <div style={{ padding:'0.75rem 1rem 0.625rem', display:'flex', alignItems:'center', gap:8, borderBottom:`1px solid ${member.colorBorder}` }}>
                 <div style={{
-                  width:26, height:26, borderRadius:8,
+                  width:30, height:30, borderRadius:9,
                   background: member.gradient,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize: member.initial.length > 1 ? '0.5625rem' : '0.75rem',
+                  fontSize: member.initial.length > 1 ? '0.5625rem' : '0.8125rem',
                   fontWeight:800, color:'#fff', flexShrink:0,
-                  boxShadow:`0 2px 6px ${member.colorGlow}`,
+                  boxShadow:`0 2px 8px ${member.colorGlow}`,
                   letterSpacing:'-0.5px',
                 }}>
                   {member.initial}
                 </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:'0.8125rem', fontWeight:700, color: member.color, lineHeight:1.2 }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:'0.875rem', fontWeight:700, color:member.color, lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     {member.name}
                   </div>
                   <div style={{ fontSize:'0.625rem', color:'var(--color-text-muted)', marginTop:1 }}>
-                    {memberTasks.length === 0 ? 'Arraste tarefas aqui' : `${memberDone}/${memberTasks.length} feitas`}
+                    {memberTasks.length === 0
+                      ? (isMobile ? 'Toque + para atribuir' : 'Arraste tarefas aqui')
+                      : `${memberDone}/${memberTasks.length} feitas`}
                   </div>
                 </div>
                 {memberTasks.length > 0 && (
                   <span style={{
-                    fontSize:'0.625rem', fontWeight:700,
-                    padding:'2px 7px', borderRadius:99,
-                    background: memberDone === memberTasks.length ? member.color+'22' : 'var(--color-bg-elevated)',
-                    color:       memberDone === memberTasks.length ? member.color : 'var(--color-text-muted)',
-                    border:`1px solid ${memberDone === memberTasks.length ? member.color+'44' : 'var(--color-border)'}`,
+                    fontSize:'0.625rem', fontWeight:700, padding:'2px 8px', borderRadius:99, whiteSpace:'nowrap',
+                    background: memberDone===memberTasks.length ? member.color+'22' : 'var(--color-bg-elevated)',
+                    color:       memberDone===memberTasks.length ? member.color : 'var(--color-text-muted)',
+                    border:     `1px solid ${memberDone===memberTasks.length ? member.color+'44' : 'var(--color-border)'}`,
                     transition:'all 0.3s',
                   }}>
                     {memberDone}/{memberTasks.length}
@@ -391,36 +390,24 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
                 <div style={{ height:2, background:'var(--color-bg-elevated)' }}>
                   <div style={{
                     height:'100%',
-                    width:`${(memberDone / memberTasks.length) * 100}%`,
+                    width:`${(memberDone/memberTasks.length)*100}%`,
                     background: member.color,
                     transition:'width 0.5s ease',
-                    boxShadow: memberDone === memberTasks.length ? `0 0 5px ${member.color}` : 'none',
+                    boxShadow: memberDone===memberTasks.length ? `0 0 5px ${member.color}` : 'none',
                   }}/>
                 </div>
               )}
 
-              {/* Lista de tarefas na coluna */}
+              {/* Tarefas na coluna */}
               <div style={{ padding:'0.625rem 0.75rem', display:'flex', flexDirection:'column', gap:5 }}>
                 {isOver && memberTasks.length === 0 && (
-                  <div style={{
-                    border:`2px dashed ${member.colorBorderActive}`,
-                    borderRadius:9, padding:'0.875rem',
-                    textAlign:'center', color: member.color,
-                    fontSize:'0.8125rem', fontWeight:600,
-                    background: member.colorBg,
-                    animation:'pulse-drop 0.9s infinite',
-                  }}>
+                  <div style={{ border:`2px dashed ${member.colorBorderActive}`, borderRadius:9, padding:'0.875rem', textAlign:'center', color:member.color, fontSize:'0.8125rem', fontWeight:600, background:member.colorBg, animation:'pulse-drop 0.9s infinite' }}>
                     ↓ Solte aqui
                   </div>
                 )}
                 {memberTasks.length === 0 && !isOver && (
-                  <div style={{
-                    border:`1px dashed ${member.colorBorder}`,
-                    borderRadius:9, padding:'1rem 0.75rem',
-                    textAlign:'center', color:'var(--color-text-muted)',
-                    fontSize:'0.75rem',
-                  }}>
-                    Vazio
+                  <div style={{ border:`1px dashed ${member.colorBorder}`, borderRadius:9, padding:'0.875rem 0.75rem', textAlign:'center', color:'var(--color-text-muted)', fontSize:'0.75rem' }}>
+                    {isMobile ? 'Use o botão + nos chips abaixo' : 'Vazio — arraste aqui'}
                   </div>
                 )}
                 {memberTasks.map(task => (
@@ -430,6 +417,7 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
                     member={member}
                     isDragging={draggingId === task.id}
                     isUpdating={!!updating[task.id]}
+                    isMobile={isMobile}
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                     onToggle={onToggle}
@@ -438,14 +426,8 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
                   />
                 ))}
                 {isOver && memberTasks.length > 0 && (
-                  <div style={{
-                    border:`2px dashed ${member.colorBorderActive}`,
-                    borderRadius:9, padding:'0.5rem',
-                    textAlign:'center', color: member.color,
-                    fontSize:'0.6875rem', fontWeight:600,
-                    background: member.colorBg,
-                  }}>
-                    ↓ Adicionar
+                  <div style={{ border:`2px dashed ${member.colorBorderActive}`, borderRadius:9, padding:'0.5rem', textAlign:'center', color:member.color, fontSize:'0.6875rem', fontWeight:600, background:member.colorBg }}>
+                    ↓ Adicionar aqui
                   </div>
                 )}
               </div>
@@ -454,46 +436,44 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
         })}
       </div>
 
-      {/* ── Pool de tarefas não atribuídas ── */}
+      {/* ── Fila de não atribuídas ── */}
       <div
         onDragOver={(e) => handleDragOver(e, 'pool')}
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, 'pool')}
         style={{
-          padding:'0.75rem 1rem',
-          background: dragOverCol === 'pool'
-            ? 'rgba(34,197,94,0.04)'
-            : 'var(--color-bg-elevated)',
+          padding:'0.875rem 1rem',
+          background: dragOverCol==='pool' ? 'rgba(34,197,94,0.04)' : 'var(--color-bg-elevated)',
           borderTop:'1px solid var(--color-border)',
           transition:'background 0.2s',
-          boxShadow: dragOverCol === 'pool' ? 'inset 0 0 0 2px rgba(34,197,94,0.3)' : 'none',
-          minHeight: 52,
+          boxShadow: dragOverCol==='pool' ? 'inset 0 0 0 2px rgba(34,197,94,0.3)' : 'none',
+          minHeight: 56,
         }}
       >
-        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom: poolTasks.length > 0 ? 8 : 0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom: poolTasks.length > 0 ? 10 : 0 }}>
           <span style={{ fontSize:'0.625rem', fontWeight:700, color:'var(--color-text-muted)', letterSpacing:'1px', textTransform:'uppercase' }}>
             📋 Fila · {poolTasks.length}
           </span>
-          {dragOverCol === 'pool' && (
-            <span style={{ fontSize:'0.625rem', color:'var(--color-green)', fontWeight:700 }}>
-              ← Solte para remover atribuição
-            </span>
+          {!isMobile && dragOverCol==='pool' && (
+            <span style={{ fontSize:'0.625rem', color:'var(--color-green)', fontWeight:700 }}>← Solte para remover atribuição</span>
           )}
         </div>
 
         {poolTasks.length === 0 ? (
           <span style={{ fontSize:'0.8125rem', color:'var(--color-text-muted)' }}>
-            {tasks.length > 0 ? '✓ Todas as tarefas foram atribuídas' : ''}
+            {tasks.length > 0 ? '✓ Todas atribuídas' : ''}
           </span>
         ) : (
-          <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
             {poolTasks.map(task => (
               <PoolTaskChip
                 key={task.id}
                 task={task}
                 isDragging={draggingId === task.id}
+                isMobile={isMobile}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
+                onAssign={assign}
               />
             ))}
           </div>
@@ -506,55 +486,58 @@ function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }
           50%      { opacity:0.65; }
         }
         @keyframes card-appear {
-          from { opacity:0; transform:scale(0.96) translateY(-3px); }
-          to   { opacity:1; transform:scale(1) translateY(0); }
+          from { opacity:0; transform:scale(0.97) translateY(-3px); }
+          to   { opacity:1; transform:scale(1)    translateY(0);    }
         }
       `}</style>
     </div>
   );
 }
 
-// ── Card dentro da coluna do membro — herda o visual de DailyTaskRow ──────────
-function KanbanTaskCard({ task, member, isDragging, isUpdating, onDragStart, onDragEnd, onToggle, onDelete, onUnassign }) {
+// ── Card dentro da coluna do membro ──────────────────────────────────────────
+function KanbanTaskCard({ task, member, isDragging, isUpdating, isMobile, onDragStart, onDragEnd, onToggle, onDelete, onUnassign }) {
   const [hover, setHover] = useState(false);
   const done  = task.completed;
   const color = projectColor(task.project);
+  // No mobile sempre mostra os botões; no desktop só no hover
+  const showActions = isMobile || hover;
 
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, task.id)}
-      onDragEnd={onDragEnd}
+      draggable={!isMobile}
+      onDragStart={!isMobile ? (e) => onDragStart(e, task.id) : undefined}
+      onDragEnd={!isMobile ? onDragEnd : undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
         background: done ? 'var(--color-bg-base)' : 'var(--color-bg-card)',
         border: `1px solid ${done ? 'var(--color-border)' : member.colorBorder}`,
         borderRadius:10,
-        padding:'0.625rem 0.75rem',
-        cursor:'grab',
+        padding: isMobile ? '0.75rem 0.875rem' : '0.625rem 0.75rem',
+        cursor: isMobile ? 'default' : 'grab',
         opacity: isDragging ? 0.3 : isUpdating ? 0.6 : 1,
         transition:'all 0.15s',
-        transform: hover && !isDragging ? 'translateY(-1px)' : 'none',
-        boxShadow: hover && !isDragging ? `0 4px 14px ${member.colorGlow}` : 'none',
+        transform: !isMobile && hover && !isDragging ? 'translateY(-1px)' : 'none',
+        boxShadow: !isMobile && hover && !isDragging ? `0 4px 14px ${member.colorGlow}` : 'none',
         animation:'card-appear 0.2s ease-out',
         userSelect:'none',
       }}
     >
-      {/* Linha principal — igual ao DailyTaskRow */}
       <div style={{ display:'flex', alignItems:'center', gap:'0.625rem' }}>
-
-        {/* Grip handle */}
-        <div style={{ color:'var(--color-text-muted)', opacity: hover ? 0.6 : 0.2, transition:'opacity 0.15s', flexShrink:0 }}>
-          <IconDrag />
-        </div>
+        {/* Grip — só desktop */}
+        {!isMobile && (
+          <div style={{ color:'var(--color-text-muted)', opacity: hover ? 0.6 : 0.2, transition:'opacity 0.15s', flexShrink:0 }}>
+            <IconDrag />
+          </div>
+        )}
 
         {/* Checkbox */}
         <button
           onClick={(e) => { e.stopPropagation(); onToggle(task, done ? -1 : 1); }}
           disabled={isUpdating}
           style={{
-            width:22, height:22, borderRadius:6, flexShrink:0,
+            width: isMobile ? 26 : 22, height: isMobile ? 26 : 22,
+            borderRadius:6, flexShrink:0,
             border: done ? 'none' : '2px solid var(--color-border)',
             background: done ? color : 'transparent',
             color:'#000', cursor:'pointer',
@@ -569,7 +552,8 @@ function KanbanTaskCard({ task, member, isDragging, isUpdating, onDragStart, onD
         {/* Conteúdo */}
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{
-            fontSize:'0.875rem', fontWeight:500, lineHeight:1.35,
+            fontSize: isMobile ? '0.9rem' : '0.875rem',
+            fontWeight:500, lineHeight:1.35,
             color: done ? 'var(--color-text-muted)' : 'var(--color-text)',
             textDecoration: done ? 'line-through' : 'none',
             transition:'all 0.2s',
@@ -583,28 +567,35 @@ function KanbanTaskCard({ task, member, isDragging, isUpdating, onDragStart, onD
         </div>
 
         {/* Status + ações */}
-        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-          {done
-            ? <span style={{ fontSize:'0.6875rem', fontWeight:700, color }}>✓ Feito</span>
-            : <span style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)' }}>Pendente</span>
-          }
-          {hover && (
+        <div style={{ display:'flex', alignItems:'center', gap: isMobile ? 8 : 6, flexShrink:0 }}>
+          {!isMobile && (
+            done
+              ? <span style={{ fontSize:'0.6875rem', fontWeight:700, color }}>✓ Feito</span>
+              : <span style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)' }}>Pendente</span>
+          )}
+          {showActions && (
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); onUnassign(); }}
                 title="Devolver para a fila"
-                style={{ background:'none', border:'none', cursor:'pointer', color:'var(--color-text-muted)', padding:2, display:'flex', alignItems:'center' }}
-                onMouseEnter={e => e.currentTarget.style.color='#f59e0b'}
-                onMouseLeave={e => e.currentTarget.style.color='var(--color-text-muted)'}
+                style={{
+                  background:'rgba(245,158,11,0.08)', border:'1px solid rgba(245,158,11,0.2)',
+                  borderRadius:6, cursor:'pointer', color:'#f59e0b',
+                  padding: isMobile ? '5px 7px' : '2px 4px',
+                  display:'flex', alignItems:'center',
+                }}
               >
                 <IconClose />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete(task); }}
                 title="Remover tarefa"
-                style={{ background:'none', border:'none', cursor:'pointer', color:'var(--color-text-muted)', padding:2, display:'flex', alignItems:'center' }}
-                onMouseEnter={e => e.currentTarget.style.color='#ef4444'}
-                onMouseLeave={e => e.currentTarget.style.color='var(--color-text-muted)'}
+                style={{
+                  background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.2)',
+                  borderRadius:6, cursor:'pointer', color:'#ef4444',
+                  padding: isMobile ? '5px 7px' : '2px 4px',
+                  display:'flex', alignItems:'center',
+                }}
               >
                 <IconTrash />
               </button>
@@ -617,49 +608,87 @@ function KanbanTaskCard({ task, member, isDragging, isUpdating, onDragStart, onD
 }
 
 // ── Chip na fila (pool) ───────────────────────────────────────────────────────
-function PoolTaskChip({ task, isDragging, onDragStart, onDragEnd }) {
+function PoolTaskChip({ task, isDragging, isMobile, onDragStart, onDragEnd, onAssign }) {
   const [hover, setHover] = useState(false);
   const color = projectColor(task.project);
   const done  = task.completed;
 
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, task.id)}
-      onDragEnd={onDragEnd}
+      draggable={!isMobile}
+      onDragStart={!isMobile ? (e) => onDragStart(e, task.id) : undefined}
+      onDragEnd={!isMobile ? onDragEnd : undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        display:'flex', alignItems:'center', gap:6,
+        display:'flex', alignItems:'center', gap:8,
         background: hover ? 'var(--color-bg-card)' : 'var(--color-bg-base)',
         border:`1px solid ${hover ? 'var(--color-border-hover)' : 'var(--color-border)'}`,
-        borderRadius:8, padding:'5px 9px',
-        cursor:'grab',
+        borderRadius:10,
+        padding: isMobile ? '0.625rem 0.875rem' : '6px 10px',
+        cursor: isMobile ? 'default' : 'grab',
         opacity: isDragging ? 0.35 : 1,
         transition:'all 0.15s',
         userSelect:'none',
-        transform: hover ? 'translateY(-1px)' : 'none',
-        boxShadow: hover ? '0 3px 8px rgba(0,0,0,0.25)' : 'none',
+        transform: !isMobile && hover ? 'translateY(-1px)' : 'none',
+        boxShadow: !isMobile && hover ? '0 3px 8px rgba(0,0,0,0.25)' : 'none',
+        width:'100%',
       }}
     >
-      <div style={{ color:'var(--color-text-muted)', opacity: hover ? 0.8 : 0.35, transition:'opacity 0.15s' }}>
-        <IconDrag />
-      </div>
+      {/* Grip — só desktop */}
+      {!isMobile && (
+        <div style={{ color:'var(--color-text-muted)', opacity: hover ? 0.7 : 0.3, transition:'opacity 0.15s', flexShrink:0 }}>
+          <IconDrag />
+        </div>
+      )}
+
+      {/* Indicador de projeto */}
       <div style={{
-        width:7, height:7, borderRadius:'50%',
-        background: done ? color : color+'66',
-        boxShadow: done ? `0 0 4px ${color}` : 'none',
-        flexShrink:0,
+        width:8, height:8, borderRadius:'50%', flexShrink:0,
+        background: done ? color : color+'77',
+        boxShadow: done ? `0 0 5px ${color}` : 'none',
       }}/>
+
+      {/* Título — texto completo */}
       <span style={{
-        fontSize:'0.75rem', fontWeight:500,
+        flex:1,
+        fontSize: isMobile ? '0.875rem' : '0.8125rem',
+        fontWeight:500,
         color: done ? 'var(--color-text-muted)' : 'var(--color-text)',
         textDecoration: done ? 'line-through' : 'none',
-        maxWidth:160,
-        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+        lineHeight:1.3,
       }}>
         {task.title}
       </span>
+
+      {/* Tag do projeto */}
+      <Tag color={color}>{task.project}</Tag>
+
+      {/* Mobile: botões de atribuição rápida */}
+      {isMobile && (
+        <div style={{ display:'flex', gap:5, flexShrink:0 }}>
+          {MEMBERS.map(m => (
+            <button
+              key={m.id}
+              onClick={() => onAssign(task.id, m.id)}
+              title={`Atribuir a ${m.name}`}
+              style={{
+                width:26, height:26, borderRadius:7,
+                background: m.gradient,
+                border:'none', cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize: m.initial.length > 1 ? '0.5rem' : '0.6875rem',
+                fontWeight:800, color:'#fff',
+                boxShadow:`0 2px 6px ${m.colorGlow}`,
+                letterSpacing:'-0.5px',
+                flexShrink:0,
+              }}
+            >
+              {m.initial}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
