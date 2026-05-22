@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 // ── Ícones ────────────────────────────────────────────────────────────────────
 const IconCheck   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
@@ -6,11 +6,10 @@ const IconPlus    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="
 const IconMinus   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 const IconTrash   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
 const IconRefresh = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>;
-const IconClose   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const IconDrag    = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>;
-const IconUser    = ({ size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+const IconClose   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const IconDrag    = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>;
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function getBrtDate() {
   const now = new Date();
   return new Date(now.getTime() - 3 * 60 * 60 * 1000);
@@ -33,7 +32,7 @@ function getWeekNumber() {
   return Math.ceil(((now - new Date(now.getFullYear(),0,1)) / (7*24*60*60*1000)) + 1);
 }
 
-// ── Projetos disponíveis ──────────────────────────────────────────────────────
+// ── Projetos ──────────────────────────────────────────────────────────────────
 const PROJECTS = ['ZeroLoss', 'Virtual', 'Cashout', 'Wincerto', 'Geral'];
 const PROJECT_COLORS = { ZeroLoss:'#22c55e', Virtual:'#3b82f6', Cashout:'#f59e0b', Wincerto:'#8b5cf6', Geral:'#6b7280' };
 const projectColor = (p) => PROJECT_COLORS[p] || '#6b7280';
@@ -45,26 +44,26 @@ const MEMBERS = [
     name: 'Augusto',
     initial: 'A',
     color: '#3b82f6',
-    colorBg: 'rgba(59,130,246,0.07)',
-    colorBorder: 'rgba(59,130,246,0.22)',
-    colorBorderHover: 'rgba(59,130,246,0.5)',
-    colorGlow: 'rgba(59,130,246,0.15)',
-    gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+    colorBg: 'rgba(59,130,246,0.06)',
+    colorBorder: 'rgba(59,130,246,0.2)',
+    colorBorderActive: 'rgba(59,130,246,0.55)',
+    colorGlow: 'rgba(59,130,246,0.12)',
+    gradient: 'linear-gradient(135deg,#3b82f6,#1d4ed8)',
   },
   {
     id: 'jose',
     name: 'José Leonardo',
     initial: 'JL',
     color: '#a855f7',
-    colorBg: 'rgba(168,85,247,0.07)',
-    colorBorder: 'rgba(168,85,247,0.22)',
-    colorBorderHover: 'rgba(168,85,247,0.5)',
-    colorGlow: 'rgba(168,85,247,0.15)',
-    gradient: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+    colorBg: 'rgba(168,85,247,0.06)',
+    colorBorder: 'rgba(168,85,247,0.2)',
+    colorBorderActive: 'rgba(168,85,247,0.55)',
+    colorGlow: 'rgba(168,85,247,0.12)',
+    gradient: 'linear-gradient(135deg,#a855f7,#7c3aed)',
   },
 ];
 
-// ── Tipos / frequências ───────────────────────────────────────────────────────
+// ── Frequências ───────────────────────────────────────────────────────────────
 const FREQ_OPTIONS = [
   { value: 'daily',      label: 'Diária',                type: 'daily'      },
   { value: 'weekly',     label: 'Semanal',               type: 'weekly'     },
@@ -132,7 +131,7 @@ export default function TasksPanel() {
     try {
       await fetch(`/api/tasks/${task.id}`, { method: 'DELETE' });
       setTasks(prev => prev.filter(t => t.id !== task.id));
-    } catch (e) { alert('Erro ao remover tarefa.'); }
+    } catch { alert('Erro ao remover tarefa.'); }
   };
 
   // ── Criar tarefa ────────────────────────────────────────────────────────────
@@ -153,7 +152,6 @@ export default function TasksPanel() {
   const dailyDone  = dailyTasks.filter(t => t.completed).length;
   const weeklyDone = weeklyTasks.filter(t => t.completed).length;
 
-  // ── Loading / Error ─────────────────────────────────────────────────────────
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:300, flexDirection:'column', gap:12 }}>
       <div style={{ width:28, height:28, border:'2px solid var(--color-border)', borderTopColor:'var(--color-green)', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/>
@@ -198,15 +196,16 @@ export default function TasksPanel() {
         <SummaryBadge label={`Semanais · ${weekRange}`} done={weeklyDone} total={weeklyTasks.length} color="#3b82f6" />
       </div>
 
-      {/* Diárias */}
+      {/* ── Tarefas Diárias com Kanban integrado ── */}
       {dailyTasks.length > 0 && (
-        <Section title="⚡ Tarefas Diárias" badge={`${dailyDone}/${dailyTasks.length}`}
-          badgeColor={dailyDone===dailyTasks.length ? '#22c55e' : '#f59e0b'}
-          subtitle={`Resetam à meia-noite · ${today}`}>
-          {dailyTasks.map(t => (
-            <DailyTaskRow key={t.id} task={t} onToggle={handleToggle} onDelete={handleDelete} isUpdating={!!updating[t.id]} />
-          ))}
-        </Section>
+        <DailyKanbanSection
+          tasks={dailyTasks}
+          today={today}
+          done={dailyDone}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
+          updating={updating}
+        />
       )}
 
       {/* Semanais */}
@@ -228,7 +227,7 @@ export default function TasksPanel() {
       )}
 
       {/* Empty state */}
-      {tasks.length === 0 && !loading && (
+      {tasks.length === 0 && (
         <div style={{ background:'var(--color-bg-card)', border:'1px dashed var(--color-border)', borderRadius:12, padding:'3rem', textAlign:'center' }}>
           <div style={{ fontSize:'2.5rem', marginBottom:12 }}>📋</div>
           <div style={{ color:'var(--color-text)', fontWeight:600, marginBottom:6 }}>Nenhuma tarefa ainda</div>
@@ -237,123 +236,222 @@ export default function TasksPanel() {
         </div>
       )}
 
-      {/* ── KANBAN DE DISTRIBUIÇÃO ── */}
-      <AssignmentKanban tasks={tasks} />
-
-      {/* Modal criar tarefa */}
       {showModal && <NewTaskModal onClose={() => setShowModal(false)} onCreate={handleCreate} />}
     </div>
   );
 }
 
-// ── Botões reutilizáveis ──────────────────────────────────────────────────────
-const btnSecStyle = {
-  display:'flex', alignItems:'center', gap:6,
-  background:'var(--color-bg-card)', border:'1px solid var(--color-border)',
-  color:'var(--color-text-muted)', borderRadius:8, padding:'6px 12px',
-  fontSize:'0.8125rem', cursor:'pointer'
-};
-const btnPrimStyle = {
-  display:'flex', alignItems:'center', gap:6,
-  background:'var(--color-green)', border:'none',
-  color:'#000', borderRadius:8, padding:'6px 14px',
-  fontSize:'0.8125rem', fontWeight:700, cursor:'pointer'
-};
-
 // ─────────────────────────────────────────────────────────────────────────────
-// ── KANBAN DE DISTRIBUIÇÃO DE TAREFAS ────────────────────────────────────────
+// ── SEÇÃO DIÁRIA COM KANBAN INTEGRADO ────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
-function AssignmentKanban({ tasks }) {
+function DailyKanbanSection({ tasks, today, done, onToggle, onDelete, updating }) {
   const STORAGE_KEY = 'zl_task_assignments_v2';
 
-  // assignments: { [taskId]: 'augusto' | 'jose' | null }
   const [assignments, setAssignments] = useState(() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
     catch { return {}; }
   });
 
   const [draggingId, setDraggingId]   = useState(null);
-  const [dragOverCol, setDragOverCol] = useState(null); // 'augusto' | 'jose' | 'pool'
+  const [dragOverCol, setDragOverCol] = useState(null);
 
   const persist = (next) => {
     setAssignments(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   };
 
-  const assign = (taskId, memberId) => {
-    persist({ ...assignments, [taskId]: memberId });
-  };
+  const assign   = (id, memberId) => persist({ ...assignments, [id]: memberId });
+  const unassign = (id) => { const n = { ...assignments }; delete n[id]; persist(n); };
 
-  const unassign = (taskId) => {
-    const next = { ...assignments };
-    delete next[taskId];
-    persist(next);
-  };
-
-  // ── Drag handlers ───────────────────────────────────────────────────────────
   const handleDragStart = (e, taskId) => {
     setDraggingId(taskId);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', taskId);
   };
-
-  const handleDragEnd = () => {
-    setDraggingId(null);
-    setDragOverCol(null);
-  };
-
-  const handleDragOver = (e, colId) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragOverCol(colId);
-  };
-
+  const handleDragEnd   = () => { setDraggingId(null); setDragOverCol(null); };
+  const handleDragOver  = (e, col) => { e.preventDefault(); setDragOverCol(col); };
   const handleDragLeave = () => setDragOverCol(null);
-
-  const handleDrop = (e, colId) => {
+  const handleDrop      = (e, col) => {
     e.preventDefault();
-    const taskId = e.dataTransfer.getData('text/plain') || draggingId;
-    if (!taskId) return;
-    if (colId === 'pool') unassign(taskId);
-    else assign(taskId, colId);
+    const id = e.dataTransfer.getData('text/plain') || draggingId;
+    if (!id) return;
+    if (col === 'pool') unassign(id);
+    else assign(id, col);
     setDraggingId(null);
     setDragOverCol(null);
   };
 
-  // ── Partição ────────────────────────────────────────────────────────────────
-  const poolTasks     = tasks.filter(t => !assignments[t.id]);
-  const augustoTasks  = tasks.filter(t => assignments[t.id] === 'augusto');
-  const joseTasks     = tasks.filter(t => assignments[t.id] === 'jose');
+  const poolTasks    = tasks.filter(t => !assignments[t.id]);
+  const augustoTasks = tasks.filter(t => assignments[t.id] === 'augusto');
+  const joseTasks    = tasks.filter(t => assignments[t.id] === 'jose');
 
-  const totalAssigned = augustoTasks.length + joseTasks.length;
+  const allDone = done === tasks.length && tasks.length > 0;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:'1rem', marginTop:4 }}>
+    <div style={{
+      background:'var(--color-bg-card)',
+      border:`1px solid ${allDone ? '#22c55e44' : 'var(--color-border)'}`,
+      borderRadius:12, overflow:'hidden',
+      transition:'border-color 0.3s',
+    }}>
 
-      {/* ── Header da seção ── */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
+      {/* ── Cabeçalho da seção ── */}
+      <div style={{ padding:'0.875rem 1.5rem', borderBottom:'1px solid var(--color-border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <div>
-          <h2 style={{ fontSize:'1rem', fontWeight:700, color:'var(--color-text)', display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{
-              width:28, height:28,
-              background:'linear-gradient(135deg,rgba(59,130,246,0.2),rgba(168,85,247,0.2))',
-              border:'1px solid rgba(168,85,247,0.3)',
-              borderRadius:8, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:'0.875rem'
-            }}>👥</span>
-            Tarefas por Membro
-          </h2>
-          <p style={{ color:'var(--color-text-muted)', fontSize:'0.75rem', marginTop:2, paddingLeft:36 }}>
-            Arraste as tarefas para distribuir entre os membros
-          </p>
+          <span style={{ fontSize:'0.875rem', fontWeight:700, color:'var(--color-text)' }}>⚡ Tarefas Diárias</span>
+          <div style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)', marginTop:2 }}>
+            Resetam à meia-noite · {today}
+          </div>
         </div>
-        {totalAssigned > 0 && (
-          <button
-            onClick={() => persist({})}
-            style={{ ...btnSecStyle, fontSize:'0.75rem', padding:'4px 10px', color:'#ef4444', borderColor:'rgba(239,68,68,0.2)' }}
-          >
-            Limpar atribuições
-          </button>
-        )}
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          {assignments && Object.keys(assignments).filter(k => tasks.find(t => t.id === k)).length > 0 && (
+            <button
+              onClick={() => persist({})}
+              style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)', background:'none', border:'none', cursor:'pointer', padding:'2px 6px', borderRadius:4 }}
+              onMouseEnter={e => e.currentTarget.style.color='#ef4444'}
+              onMouseLeave={e => e.currentTarget.style.color='var(--color-text-muted)'}
+              title="Limpar atribuições"
+            >
+              limpar
+            </button>
+          )}
+          <span style={{
+            fontSize:'0.6875rem', fontWeight:700, padding:'3px 10px', borderRadius:20,
+            background: allDone ? '#22c55e22' : '#f59e0b22',
+            color:       allDone ? '#22c55e'  : '#f59e0b',
+            border:      `1px solid ${allDone ? '#22c55e44' : '#f59e0b44'}`,
+          }}>{done}/{tasks.length}</span>
+        </div>
+      </div>
+
+      {/* ── Colunas dos membros ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:0 }}>
+        {MEMBERS.map((member, i) => {
+          const memberTasks = member.id === 'augusto' ? augustoTasks : joseTasks;
+          const isOver      = dragOverCol === member.id;
+          const memberDone  = memberTasks.filter(t => t.completed).length;
+
+          return (
+            <div key={member.id}
+              onDragOver={(e) => handleDragOver(e, member.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, member.id)}
+              style={{
+                borderRight: i === 0 ? '1px solid var(--color-border)' : 'none',
+                borderBottom: '1px solid var(--color-border)',
+                background: isOver
+                  ? member.colorBg
+                  : `linear-gradient(180deg, ${member.colorBg} 0%, transparent 60%)`,
+                transition:'background 0.2s, box-shadow 0.2s',
+                boxShadow: isOver ? `inset 0 0 0 2px ${member.colorBorderActive}` : 'none',
+                minHeight: 130,
+              }}
+            >
+              {/* Cabeçalho da coluna */}
+              <div style={{
+                padding:'0.75rem 1rem 0.625rem',
+                display:'flex', alignItems:'center', gap:8,
+                borderBottom: `1px solid ${member.colorBorder}`,
+              }}>
+                <div style={{
+                  width:26, height:26, borderRadius:8,
+                  background: member.gradient,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize: member.initial.length > 1 ? '0.5625rem' : '0.75rem',
+                  fontWeight:800, color:'#fff', flexShrink:0,
+                  boxShadow:`0 2px 6px ${member.colorGlow}`,
+                  letterSpacing:'-0.5px',
+                }}>
+                  {member.initial}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:'0.8125rem', fontWeight:700, color: member.color, lineHeight:1.2 }}>
+                    {member.name}
+                  </div>
+                  <div style={{ fontSize:'0.625rem', color:'var(--color-text-muted)', marginTop:1 }}>
+                    {memberTasks.length === 0 ? 'Arraste tarefas aqui' : `${memberDone}/${memberTasks.length} feitas`}
+                  </div>
+                </div>
+                {memberTasks.length > 0 && (
+                  <span style={{
+                    fontSize:'0.625rem', fontWeight:700,
+                    padding:'2px 7px', borderRadius:99,
+                    background: memberDone === memberTasks.length ? member.color+'22' : 'var(--color-bg-elevated)',
+                    color:       memberDone === memberTasks.length ? member.color : 'var(--color-text-muted)',
+                    border:`1px solid ${memberDone === memberTasks.length ? member.color+'44' : 'var(--color-border)'}`,
+                    transition:'all 0.3s',
+                  }}>
+                    {memberDone}/{memberTasks.length}
+                  </span>
+                )}
+              </div>
+
+              {/* Barra de progresso */}
+              {memberTasks.length > 0 && (
+                <div style={{ height:2, background:'var(--color-bg-elevated)' }}>
+                  <div style={{
+                    height:'100%',
+                    width:`${(memberDone / memberTasks.length) * 100}%`,
+                    background: member.color,
+                    transition:'width 0.5s ease',
+                    boxShadow: memberDone === memberTasks.length ? `0 0 5px ${member.color}` : 'none',
+                  }}/>
+                </div>
+              )}
+
+              {/* Lista de tarefas na coluna */}
+              <div style={{ padding:'0.625rem 0.75rem', display:'flex', flexDirection:'column', gap:5 }}>
+                {isOver && memberTasks.length === 0 && (
+                  <div style={{
+                    border:`2px dashed ${member.colorBorderActive}`,
+                    borderRadius:9, padding:'0.875rem',
+                    textAlign:'center', color: member.color,
+                    fontSize:'0.8125rem', fontWeight:600,
+                    background: member.colorBg,
+                    animation:'pulse-drop 0.9s infinite',
+                  }}>
+                    ↓ Solte aqui
+                  </div>
+                )}
+                {memberTasks.length === 0 && !isOver && (
+                  <div style={{
+                    border:`1px dashed ${member.colorBorder}`,
+                    borderRadius:9, padding:'1rem 0.75rem',
+                    textAlign:'center', color:'var(--color-text-muted)',
+                    fontSize:'0.75rem',
+                  }}>
+                    Vazio
+                  </div>
+                )}
+                {memberTasks.map(task => (
+                  <KanbanTaskCard
+                    key={task.id}
+                    task={task}
+                    member={member}
+                    isDragging={draggingId === task.id}
+                    isUpdating={!!updating[task.id]}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onToggle={onToggle}
+                    onDelete={onDelete}
+                    onUnassign={() => unassign(task.id)}
+                  />
+                ))}
+                {isOver && memberTasks.length > 0 && (
+                  <div style={{
+                    border:`2px dashed ${member.colorBorderActive}`,
+                    borderRadius:9, padding:'0.5rem',
+                    textAlign:'center', color: member.color,
+                    fontSize:'0.6875rem', fontWeight:600,
+                    background: member.colorBg,
+                  }}>
+                    ↓ Adicionar
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Pool de tarefas não atribuídas ── */}
@@ -362,32 +460,35 @@ function AssignmentKanban({ tasks }) {
         onDragLeave={handleDragLeave}
         onDrop={(e) => handleDrop(e, 'pool')}
         style={{
+          padding:'0.75rem 1rem',
           background: dragOverCol === 'pool'
-            ? 'rgba(34,197,94,0.05)'
-            : 'var(--color-bg-card)',
-          border: `1px ${dragOverCol === 'pool' ? 'solid' : 'dashed'} ${dragOverCol === 'pool' ? 'rgba(34,197,94,0.4)' : 'var(--color-border)'}`,
-          borderRadius:12, padding:'0.875rem 1rem',
-          transition:'all 0.2s',
-          minHeight: 56,
+            ? 'rgba(34,197,94,0.04)'
+            : 'var(--color-bg-elevated)',
+          borderTop:'1px solid var(--color-border)',
+          transition:'background 0.2s',
+          boxShadow: dragOverCol === 'pool' ? 'inset 0 0 0 2px rgba(34,197,94,0.3)' : 'none',
+          minHeight: 52,
         }}
       >
-        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom: poolTasks.length > 0 ? 10 : 0 }}>
-          <span style={{ fontSize:'0.6875rem', fontWeight:700, color:'var(--color-text-muted)', letterSpacing:'1px', textTransform:'uppercase' }}>
-            📋 Fila · {poolTasks.length} {poolTasks.length === 1 ? 'tarefa' : 'tarefas'}
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom: poolTasks.length > 0 ? 8 : 0 }}>
+          <span style={{ fontSize:'0.625rem', fontWeight:700, color:'var(--color-text-muted)', letterSpacing:'1px', textTransform:'uppercase' }}>
+            📋 Fila · {poolTasks.length}
           </span>
           {dragOverCol === 'pool' && (
-            <span style={{ fontSize:'0.6875rem', color:'var(--color-green)', fontWeight:700 }}>← Solte aqui para remover atribuição</span>
+            <span style={{ fontSize:'0.625rem', color:'var(--color-green)', fontWeight:700 }}>
+              ← Solte para remover atribuição
+            </span>
           )}
         </div>
 
         {poolTasks.length === 0 ? (
-          <div style={{ textAlign:'center', color:'var(--color-text-muted)', fontSize:'0.8125rem', padding:'0.5rem 0' }}>
-            {tasks.length === 0 ? 'Nenhuma tarefa cadastrada ainda' : '✓ Todas as tarefas foram atribuídas'}
-          </div>
+          <span style={{ fontSize:'0.8125rem', color:'var(--color-text-muted)' }}>
+            {tasks.length > 0 ? '✓ Todas as tarefas foram atribuídas' : ''}
+          </span>
         ) : (
-          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+          <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
             {poolTasks.map(task => (
-              <KanbanCard
+              <PoolTaskChip
                 key={task.id}
                 task={task}
                 isDragging={draggingId === task.id}
@@ -399,167 +500,25 @@ function AssignmentKanban({ tasks }) {
         )}
       </div>
 
-      {/* ── Colunas dos membros ── */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.875rem' }}>
-        {MEMBERS.map(member => {
-          const memberTasks = member.id === 'augusto' ? augustoTasks : joseTasks;
-          const isOver      = dragOverCol === member.id;
-          const doneTasks   = memberTasks.filter(t => t.completed).length;
-
-          return (
-            <div key={member.id}
-              onDragOver={(e) => handleDragOver(e, member.id)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, member.id)}
-              style={{
-                background: isOver ? member.colorBg : 'var(--color-bg-card)',
-                border: `1px solid ${isOver ? member.colorBorderHover : member.colorBorder}`,
-                borderRadius:14,
-                overflow:'hidden',
-                transition:'all 0.2s',
-                boxShadow: isOver ? `0 0 20px ${member.colorGlow}` : 'none',
-                minHeight:180,
-              }}
-            >
-              {/* Cabeçalho da coluna */}
-              <div style={{
-                padding:'0.875rem 1.125rem',
-                borderBottom:`1px solid ${isOver ? member.colorBorderHover : member.colorBorder}`,
-                background: isOver
-                  ? `linear-gradient(135deg, ${member.colorBg}, transparent)`
-                  : `linear-gradient(135deg, ${member.colorBg}, transparent)`,
-                display:'flex', alignItems:'center', gap:10,
-                transition:'all 0.2s',
-              }}>
-                {/* Avatar */}
-                <div style={{
-                  width:32, height:32, borderRadius:10,
-                  background: member.gradient,
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  flexShrink:0,
-                  boxShadow:`0 2px 8px ${member.colorGlow}`,
-                  fontSize: member.initial.length > 1 ? '0.625rem' : '0.8125rem',
-                  fontWeight:800, color:'#fff',
-                  letterSpacing:'-0.5px',
-                }}>
-                  {member.initial}
-                </div>
-
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:'0.875rem', fontWeight:700, color: member.color }}>
-                    {member.name}
-                  </div>
-                  <div style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)', marginTop:1 }}>
-                    {memberTasks.length === 0
-                      ? 'Sem tarefas atribuídas'
-                      : `${memberTasks.length} tarefa${memberTasks.length > 1 ? 's' : ''} · ${doneTasks} concluída${doneTasks !== 1 ? 's' : ''}`
-                    }
-                  </div>
-                </div>
-
-                {/* Badge de progresso */}
-                {memberTasks.length > 0 && (
-                  <div style={{
-                    fontSize:'0.6875rem', fontWeight:700,
-                    padding:'3px 9px', borderRadius:99,
-                    background: doneTasks === memberTasks.length ? member.color + '22' : 'var(--color-bg-elevated)',
-                    color: doneTasks === memberTasks.length ? member.color : 'var(--color-text-muted)',
-                    border: `1px solid ${doneTasks === memberTasks.length ? member.color + '44' : 'var(--color-border)'}`,
-                    transition:'all 0.3s',
-                  }}>
-                    {doneTasks}/{memberTasks.length}
-                  </div>
-                )}
-              </div>
-
-              {/* Barra de progresso fina */}
-              {memberTasks.length > 0 && (
-                <div style={{ height:2, background:'var(--color-bg-elevated)' }}>
-                  <div style={{
-                    height:'100%',
-                    width:`${(doneTasks / memberTasks.length) * 100}%`,
-                    background: member.color,
-                    transition:'width 0.5s ease',
-                    boxShadow: doneTasks === memberTasks.length ? `0 0 6px ${member.color}` : 'none',
-                  }}/>
-                </div>
-              )}
-
-              {/* Lista de tarefas */}
-              <div style={{ padding:'0.75rem', display:'flex', flexDirection:'column', gap:6, minHeight:100 }}>
-                {isOver && memberTasks.length === 0 && (
-                  <div style={{
-                    border:`2px dashed ${member.colorBorderHover}`,
-                    borderRadius:10, padding:'1rem',
-                    textAlign:'center', color:member.color,
-                    fontSize:'0.8125rem', fontWeight:600,
-                    background: member.colorBg,
-                    animation:'pulse-drop 1s infinite',
-                  }}>
-                    ↓ Solte aqui
-                  </div>
-                )}
-                {memberTasks.length === 0 && !isOver && (
-                  <div style={{
-                    border:`1px dashed ${member.colorBorder}`,
-                    borderRadius:10, padding:'1.25rem 1rem',
-                    textAlign:'center', color:'var(--color-text-muted)',
-                    fontSize:'0.8125rem',
-                  }}>
-                    Arraste tarefas para cá
-                  </div>
-                )}
-                {memberTasks.map(task => (
-                  <KanbanCard
-                    key={task.id}
-                    task={task}
-                    member={member}
-                    isDragging={draggingId === task.id}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                    onUnassign={() => unassign(task.id)}
-                  />
-                ))}
-                {isOver && memberTasks.length > 0 && (
-                  <div style={{
-                    border:`2px dashed ${member.colorBorderHover}`,
-                    borderRadius:10, padding:'0.625rem',
-                    textAlign:'center', color:member.color,
-                    fontSize:'0.75rem', fontWeight:600,
-                    background: member.colorBg,
-                  }}>
-                    ↓ Adicionar aqui
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
       <style>{`
         @keyframes pulse-drop {
           0%,100% { opacity:1; }
-          50%      { opacity:0.7; }
+          50%      { opacity:0.65; }
         }
-        @keyframes card-in {
-          from { opacity:0; transform:translateY(-4px) scale(0.98); }
-          to   { opacity:1; transform:translateY(0)  scale(1);    }
+        @keyframes card-appear {
+          from { opacity:0; transform:scale(0.96) translateY(-3px); }
+          to   { opacity:1; transform:scale(1) translateY(0); }
         }
       `}</style>
     </div>
   );
 }
 
-// ── Card arrastável do Kanban ─────────────────────────────────────────────────
-function KanbanCard({ task, member, isDragging, onDragStart, onDragEnd, onUnassign }) {
+// ── Card dentro da coluna do membro — herda o visual de DailyTaskRow ──────────
+function KanbanTaskCard({ task, member, isDragging, isUpdating, onDragStart, onDragEnd, onToggle, onDelete, onUnassign }) {
   const [hover, setHover] = useState(false);
-  const color = projectColor(task.project);
   const done  = task.completed;
-
-  const freqLabel = {
-    daily: 'diária', weekly: 'semanal', continuous: 'contínua', custom: `${task.custom_interval_days}d`
-  }[task.frequency] || task.frequency;
+  const color = projectColor(task.project);
 
   return (
     <div
@@ -569,84 +528,155 @@ function KanbanCard({ task, member, isDragging, onDragStart, onDragEnd, onUnassi
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
-        background: done
-          ? 'var(--color-bg-elevated)'
-          : (member ? `${member.colorBg}` : 'var(--color-bg-elevated)'),
-        border: `1px solid ${done
-          ? 'var(--color-border)'
-          : (member ? member.colorBorder : 'var(--color-border-hover)')}`,
+        background: done ? 'var(--color-bg-base)' : 'var(--color-bg-card)',
+        border: `1px solid ${done ? 'var(--color-border)' : member.colorBorder}`,
         borderRadius:10,
         padding:'0.625rem 0.75rem',
         cursor:'grab',
-        opacity: isDragging ? 0.4 : 1,
+        opacity: isDragging ? 0.3 : isUpdating ? 0.6 : 1,
         transition:'all 0.15s',
         transform: hover && !isDragging ? 'translateY(-1px)' : 'none',
-        boxShadow: hover && !isDragging
-          ? (member ? `0 4px 12px ${member.colorGlow}` : '0 4px 12px rgba(0,0,0,0.3)')
-          : 'none',
-        animation: 'card-in 0.2s ease-out',
-        userSelect: 'none',
-        position: 'relative',
+        boxShadow: hover && !isDragging ? `0 4px 14px ${member.colorGlow}` : 'none',
+        animation:'card-appear 0.2s ease-out',
+        userSelect:'none',
       }}
     >
-      <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
-        {/* Grip + check status */}
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, paddingTop:2, flexShrink:0 }}>
-          <div style={{ color:'var(--color-text-muted)', opacity: hover ? 1 : 0.4, transition:'opacity 0.15s' }}>
-            <IconDrag />
-          </div>
-          <div style={{
-            width:12, height:12, borderRadius:3,
-            background: done ? color : 'transparent',
-            border: done ? 'none' : `1.5px solid ${color}88`,
-            display:'flex', alignItems:'center', justifyContent:'center',
-            color:'#000', fontSize:'0.5rem', flexShrink:0,
-          }}>
-            {done && '✓'}
-          </div>
+      {/* Linha principal — igual ao DailyTaskRow */}
+      <div style={{ display:'flex', alignItems:'center', gap:'0.625rem' }}>
+
+        {/* Grip handle */}
+        <div style={{ color:'var(--color-text-muted)', opacity: hover ? 0.6 : 0.2, transition:'opacity 0.15s', flexShrink:0 }}>
+          <IconDrag />
         </div>
+
+        {/* Checkbox */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggle(task, done ? -1 : 1); }}
+          disabled={isUpdating}
+          style={{
+            width:22, height:22, borderRadius:6, flexShrink:0,
+            border: done ? 'none' : '2px solid var(--color-border)',
+            background: done ? color : 'transparent',
+            color:'#000', cursor:'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            transition:'all 0.2s',
+            boxShadow: done ? `0 0 8px ${color}55` : 'none',
+          }}
+        >
+          {done && <IconCheck />}
+        </button>
 
         {/* Conteúdo */}
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{
-            fontSize:'0.8125rem', fontWeight:600,
+            fontSize:'0.875rem', fontWeight:500, lineHeight:1.35,
             color: done ? 'var(--color-text-muted)' : 'var(--color-text)',
             textDecoration: done ? 'line-through' : 'none',
-            lineHeight:1.3,
-            marginBottom:4,
+            transition:'all 0.2s',
           }}>
             {task.title}
           </div>
-          <div style={{ display:'flex', gap:4, flexWrap:'wrap', alignItems:'center' }}>
+          <div style={{ display:'flex', gap:4, marginTop:3, flexWrap:'wrap' }}>
             <Tag color={color}>{task.project}</Tag>
-            <Tag color="#6b7280">{freqLabel}</Tag>
-            {task.target_count > 1 && (
-              <Tag color="#6b7280">{task.current_count || 0}/{task.target_count}</Tag>
-            )}
+            {task.custom_interval_days && <Tag color="#6b7280">a cada {task.custom_interval_days}d</Tag>}
           </div>
         </div>
 
-        {/* Botão de remover atribuição */}
-        {onUnassign && hover && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onUnassign(); }}
-            title="Remover da coluna"
-            style={{
-              background:'none', border:'none', cursor:'pointer',
-              color:'var(--color-text-muted)', padding:2,
-              display:'flex', alignItems:'center',
-              flexShrink:0,
-            }}
-            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
-          >
-            <IconClose />
-          </button>
-        )}
+        {/* Status + ações */}
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+          {done
+            ? <span style={{ fontSize:'0.6875rem', fontWeight:700, color }}>✓ Feito</span>
+            : <span style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)' }}>Pendente</span>
+          }
+          {hover && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onUnassign(); }}
+                title="Devolver para a fila"
+                style={{ background:'none', border:'none', cursor:'pointer', color:'var(--color-text-muted)', padding:2, display:'flex', alignItems:'center' }}
+                onMouseEnter={e => e.currentTarget.style.color='#f59e0b'}
+                onMouseLeave={e => e.currentTarget.style.color='var(--color-text-muted)'}
+              >
+                <IconClose />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(task); }}
+                title="Remover tarefa"
+                style={{ background:'none', border:'none', cursor:'pointer', color:'var(--color-text-muted)', padding:2, display:'flex', alignItems:'center' }}
+                onMouseEnter={e => e.currentTarget.style.color='#ef4444'}
+                onMouseLeave={e => e.currentTarget.style.color='var(--color-text-muted)'}
+              >
+                <IconTrash />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+
+// ── Chip na fila (pool) ───────────────────────────────────────────────────────
+function PoolTaskChip({ task, isDragging, onDragStart, onDragEnd }) {
+  const [hover, setHover] = useState(false);
+  const color = projectColor(task.project);
+  const done  = task.completed;
+
+  return (
+    <div
+      draggable
+      onDragStart={(e) => onDragStart(e, task.id)}
+      onDragEnd={onDragEnd}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display:'flex', alignItems:'center', gap:6,
+        background: hover ? 'var(--color-bg-card)' : 'var(--color-bg-base)',
+        border:`1px solid ${hover ? 'var(--color-border-hover)' : 'var(--color-border)'}`,
+        borderRadius:8, padding:'5px 9px',
+        cursor:'grab',
+        opacity: isDragging ? 0.35 : 1,
+        transition:'all 0.15s',
+        userSelect:'none',
+        transform: hover ? 'translateY(-1px)' : 'none',
+        boxShadow: hover ? '0 3px 8px rgba(0,0,0,0.25)' : 'none',
+      }}
+    >
+      <div style={{ color:'var(--color-text-muted)', opacity: hover ? 0.8 : 0.35, transition:'opacity 0.15s' }}>
+        <IconDrag />
+      </div>
+      <div style={{
+        width:7, height:7, borderRadius:'50%',
+        background: done ? color : color+'66',
+        boxShadow: done ? `0 0 4px ${color}` : 'none',
+        flexShrink:0,
+      }}/>
+      <span style={{
+        fontSize:'0.75rem', fontWeight:500,
+        color: done ? 'var(--color-text-muted)' : 'var(--color-text)',
+        textDecoration: done ? 'line-through' : 'none',
+        maxWidth:160,
+        overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
+      }}>
+        {task.title}
+      </span>
+    </div>
+  );
+}
+
+// ── Botões reutilizáveis ──────────────────────────────────────────────────────
+const btnSecStyle = {
+  display:'flex', alignItems:'center', gap:6,
+  background:'var(--color-bg-card)', border:'1px solid var(--color-border)',
+  color:'var(--color-text-muted)', borderRadius:8, padding:'6px 12px',
+  fontSize:'0.8125rem', cursor:'pointer',
+};
+const btnPrimStyle = {
+  display:'flex', alignItems:'center', gap:6,
+  background:'var(--color-green)', border:'none',
+  color:'#000', borderRadius:8, padding:'6px 14px',
+  fontSize:'0.8125rem', fontWeight:700, cursor:'pointer',
+};
 
 // ── Modal: Nova Tarefa ────────────────────────────────────────────────────────
 function NewTaskModal({ onClose, onCreate }) {
@@ -684,7 +714,7 @@ function NewTaskModal({ onClose, onCreate }) {
       <div style={{
         background:'var(--color-bg-card)', border:'1px solid var(--color-border)',
         borderRadius:14, padding:'1.75rem', width:440, maxWidth:'92vw',
-        maxHeight:'90vh', overflowY:'auto', position:'relative'
+        maxHeight:'90vh', overflowY:'auto',
       }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.5rem' }}>
           <div>
@@ -697,14 +727,10 @@ function NewTaskModal({ onClose, onCreate }) {
         </div>
 
         <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
-
           <Field label="Título da tarefa *">
-            <input
-              className="input" value={title} onChange={e => setTitle(e.target.value)}
+            <input className="input" value={title} onChange={e => setTitle(e.target.value)}
               placeholder="Ex: 3 stories no Instagram"
-              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-              autoFocus
-            />
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()} autoFocus />
           </Field>
 
           <Field label="Projeto">
@@ -713,27 +739,21 @@ function NewTaskModal({ onClose, onCreate }) {
               <option value="__custom__">+ Outro projeto...</option>
             </select>
             {project === '__custom__' && (
-              <input
-                className="input" value={customProject} onChange={e => setCustomProject(e.target.value)}
-                placeholder="Nome do projeto" style={{ marginTop:6 }}
-              />
+              <input className="input" value={customProject} onChange={e => setCustomProject(e.target.value)}
+                placeholder="Nome do projeto" style={{ marginTop:6 }} />
             )}
           </Field>
 
           <Field label="Tipo / Frequência">
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
               {FREQ_OPTIONS.map(f => (
-                <button key={f.value} onClick={() => setFreq(f.value)}
-                  style={{
-                    padding:'8px 10px', borderRadius:8, fontSize:'0.8125rem', fontWeight:600,
-                    cursor:'pointer', textAlign:'left', transition:'all 0.15s',
-                    background: freq === f.value ? 'rgba(34,197,94,0.12)' : 'var(--color-bg-elevated)',
-                    border: `1px solid ${freq === f.value ? 'rgba(34,197,94,0.4)' : 'var(--color-border)'}`,
-                    color: freq === f.value ? 'var(--color-green)' : 'var(--color-text-muted)',
-                  }}
-                >
-                  {f.label}
-                </button>
+                <button key={f.value} onClick={() => setFreq(f.value)} style={{
+                  padding:'8px 10px', borderRadius:8, fontSize:'0.8125rem', fontWeight:600,
+                  cursor:'pointer', textAlign:'left', transition:'all 0.15s',
+                  background: freq===f.value ? 'rgba(34,197,94,0.12)' : 'var(--color-bg-elevated)',
+                  border:`1px solid ${freq===f.value ? 'rgba(34,197,94,0.4)' : 'var(--color-border)'}`,
+                  color: freq===f.value ? 'var(--color-green)' : 'var(--color-text-muted)',
+                }}>{f.label}</button>
               ))}
             </div>
           </Field>
@@ -742,8 +762,7 @@ function NewTaskModal({ onClose, onCreate }) {
             <Field label="A cada quantos dias?">
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <input type="number" min={1} max={365} value={interval}
-                  onChange={e => setInterval(e.target.value)}
-                  className="input" style={{ width:90 }} />
+                  onChange={e => setInterval(e.target.value)} className="input" style={{ width:90 }} />
                 <span style={{ color:'var(--color-text-muted)', fontSize:'0.875rem' }}>dias</span>
               </div>
             </Field>
@@ -753,8 +772,7 @@ function NewTaskModal({ onClose, onCreate }) {
             <Field label={freq === 'weekly' ? 'Meta semanal (quantidade)' : 'Meta total'}>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                 <input type="number" min={1} value={target}
-                  onChange={e => setTarget(e.target.value)}
-                  className="input" style={{ width:90 }} />
+                  onChange={e => setTarget(e.target.value)} className="input" style={{ width:90 }} />
                 <span style={{ color:'var(--color-text-muted)', fontSize:'0.875rem' }}>
                   {freq === 'weekly' ? 'por semana' : 'no total'}
                 </span>
@@ -762,17 +780,14 @@ function NewTaskModal({ onClose, onCreate }) {
             </Field>
           )}
 
-          <div style={{
-            background:'var(--color-bg-elevated)', border:'1px solid var(--color-border)',
-            borderRadius:8, padding:'0.875rem 1rem', fontSize:'0.8125rem'
-          }}>
+          <div style={{ background:'var(--color-bg-elevated)', border:'1px solid var(--color-border)', borderRadius:8, padding:'0.875rem 1rem', fontSize:'0.8125rem' }}>
             <div style={{ color:'var(--color-text-muted)', fontSize:'0.625rem', fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', marginBottom:6 }}>Preview</div>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <span style={{
                 width:20, height:20, borderRadius:5,
                 background: freq==='daily'||freq==='custom' ? 'rgba(34,197,94,0.1)' : freq==='weekly' ? 'rgba(59,130,246,0.1)' : 'rgba(139,92,246,0.1)',
-                border: `1px solid ${freq==='daily'||freq==='custom' ? '#22c55e44' : freq==='weekly' ? '#3b82f644' : '#8b5cf644'}`,
-                flexShrink:0
+                border:`1px solid ${freq==='daily'||freq==='custom' ? '#22c55e44' : freq==='weekly' ? '#3b82f644' : '#8b5cf644'}`,
+                flexShrink:0,
               }}/>
               <span style={{ fontWeight:600, color:'var(--color-text)' }}>{title || 'Título da tarefa'}</span>
             </div>
@@ -847,46 +862,6 @@ function Section({ title, badge, badgeColor, subtitle, children }) {
         <span style={{ fontSize:'0.6875rem', fontWeight:700, padding:'3px 10px', borderRadius:20, background:badgeColor+'22', color:badgeColor, border:`1px solid ${badgeColor}44` }}>{badge}</span>
       </div>
       <div style={{ display:'flex', flexDirection:'column' }}>{children}</div>
-    </div>
-  );
-}
-
-function DailyTaskRow({ task, onToggle, onDelete, isUpdating }) {
-  const [hover, setHover] = useState(false);
-  const done  = task.completed;
-  const color = projectColor(task.project);
-  return (
-    <div
-      style={{ display:'flex', alignItems:'center', gap:'1rem', padding:'0.875rem 1.5rem', borderBottom:'1px solid var(--color-border)', transition:'background 0.15s', background: hover ? 'var(--color-bg-elevated)' : 'transparent', opacity: isUpdating ? 0.6 : 1 }}
-      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-    >
-      <button onClick={() => onToggle(task, done ? -1 : 1)} disabled={isUpdating}
-        style={{ width:24, height:24, borderRadius:6, flexShrink:0, border: done ? 'none' : '2px solid var(--color-border)', background: done ? color : 'transparent', color:'#000', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s', boxShadow: done ? `0 0 8px ${color}55` : 'none' }}>
-        {done && <IconCheck />}
-      </button>
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:'0.9375rem', fontWeight:500, color: done ? 'var(--color-text-muted)' : 'var(--color-text)', textDecoration: done ? 'line-through' : 'none', transition:'all 0.2s' }}>
-          {task.title}
-        </div>
-        <div style={{ display:'flex', gap:6, marginTop:3, flexWrap:'wrap' }}>
-          <Tag color={color}>{task.project}</Tag>
-          {task.custom_interval_days && <Tag color="#6b7280">a cada {task.custom_interval_days} dias</Tag>}
-        </div>
-      </div>
-      <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
-        {done
-          ? <span style={{ fontSize:'0.75rem', fontWeight:700, color }}>✓ Feito</span>
-          : <span style={{ fontSize:'0.75rem', color:'var(--color-text-muted)' }}>Pendente</span>
-        }
-        {hover && (
-          <button onClick={() => onDelete(task)} title="Remover tarefa"
-            style={{ background:'transparent', border:'none', color:'#333', cursor:'pointer', padding:2, display:'flex', alignItems:'center' }}
-            onMouseEnter={e => e.currentTarget.style.color='#ef4444'}
-            onMouseLeave={e => e.currentTarget.style.color='#333'}>
-            <IconTrash />
-          </button>
-        )}
-      </div>
     </div>
   );
 }
