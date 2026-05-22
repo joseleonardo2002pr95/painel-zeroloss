@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // ── Ícones ────────────────────────────────────────────────────────────────────
-const IconCheck  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
-const IconPlus   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-const IconMinus  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-const IconTrash  = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
+const IconCheck   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
+const IconPlus    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+const IconMinus   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+const IconTrash   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
 const IconRefresh = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>;
-const IconClose  = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const IconClose   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const IconDrag    = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>;
+const IconUser    = ({ size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getBrtDate() {
@@ -14,8 +16,8 @@ function getBrtDate() {
   return new Date(now.getTime() - 3 * 60 * 60 * 1000);
 }
 function formatDate(d) {
-  const dias   = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-  const meses  = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const dias  = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   return `${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]}`;
 }
 function getWeekRange() {
@@ -36,12 +38,38 @@ const PROJECTS = ['ZeroLoss', 'Virtual', 'Cashout', 'Wincerto', 'Geral'];
 const PROJECT_COLORS = { ZeroLoss:'#22c55e', Virtual:'#3b82f6', Cashout:'#f59e0b', Wincerto:'#8b5cf6', Geral:'#6b7280' };
 const projectColor = (p) => PROJECT_COLORS[p] || '#6b7280';
 
+// ── Membros do kanban ─────────────────────────────────────────────────────────
+const MEMBERS = [
+  {
+    id: 'augusto',
+    name: 'Augusto',
+    initial: 'A',
+    color: '#3b82f6',
+    colorBg: 'rgba(59,130,246,0.07)',
+    colorBorder: 'rgba(59,130,246,0.22)',
+    colorBorderHover: 'rgba(59,130,246,0.5)',
+    colorGlow: 'rgba(59,130,246,0.15)',
+    gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+  },
+  {
+    id: 'jose',
+    name: 'José Leonardo',
+    initial: 'JL',
+    color: '#a855f7',
+    colorBg: 'rgba(168,85,247,0.07)',
+    colorBorder: 'rgba(168,85,247,0.22)',
+    colorBorderHover: 'rgba(168,85,247,0.5)',
+    colorGlow: 'rgba(168,85,247,0.15)',
+    gradient: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+  },
+];
+
 // ── Tipos / frequências ───────────────────────────────────────────────────────
 const FREQ_OPTIONS = [
   { value: 'daily',      label: 'Diária',                type: 'daily'      },
   { value: 'weekly',     label: 'Semanal',               type: 'weekly'     },
   { value: 'continuous', label: 'Contínua / Meta',       type: 'continuous' },
-  { value: 'custom',     label: 'Personalizada (N dias)', type: 'daily'      },
+  { value: 'custom',     label: 'Personalizada (N dias)', type: 'daily'     },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,8 +80,8 @@ export default function TasksPanel() {
   const [updating, setUpdating]   = useState({});
   const [showModal, setShowModal] = useState(false);
 
-  const today    = formatDate(getBrtDate());
-  const weekNum  = getWeekNumber();
+  const today     = formatDate(getBrtDate());
+  const weekNum   = getWeekNumber();
   const weekRange = getWeekRange();
 
   const fetchTasks = useCallback(async () => {
@@ -109,7 +137,7 @@ export default function TasksPanel() {
 
   // ── Criar tarefa ────────────────────────────────────────────────────────────
   const handleCreate = async (payload) => {
-    const res  = await fetch('/api/tasks', {
+    const res = await fetch('/api/tasks', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
@@ -166,8 +194,8 @@ export default function TasksPanel() {
 
       {/* Resumo */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:'0.75rem' }}>
-        <SummaryBadge label="Diárias"                    done={dailyDone}  total={dailyTasks.length}  color="#22c55e" />
-        <SummaryBadge label={`Semanais · ${weekRange}`}  done={weeklyDone} total={weeklyTasks.length} color="#3b82f6" />
+        <SummaryBadge label="Diárias"                   done={dailyDone}  total={dailyTasks.length}  color="#22c55e" />
+        <SummaryBadge label={`Semanais · ${weekRange}`} done={weeklyDone} total={weeklyTasks.length} color="#3b82f6" />
       </div>
 
       {/* Diárias */}
@@ -209,6 +237,9 @@ export default function TasksPanel() {
         </div>
       )}
 
+      {/* ── KANBAN DE DISTRIBUIÇÃO ── */}
+      <AssignmentKanban tasks={tasks} />
+
       {/* Modal criar tarefa */}
       {showModal && <NewTaskModal onClose={() => setShowModal(false)} onCreate={handleCreate} />}
     </div>
@@ -229,18 +260,406 @@ const btnPrimStyle = {
   fontSize:'0.8125rem', fontWeight:700, cursor:'pointer'
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ── KANBAN DE DISTRIBUIÇÃO DE TAREFAS ────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+function AssignmentKanban({ tasks }) {
+  const STORAGE_KEY = 'zl_task_assignments_v2';
+
+  // assignments: { [taskId]: 'augusto' | 'jose' | null }
+  const [assignments, setAssignments] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+    catch { return {}; }
+  });
+
+  const [draggingId, setDraggingId]   = useState(null);
+  const [dragOverCol, setDragOverCol] = useState(null); // 'augusto' | 'jose' | 'pool'
+
+  const persist = (next) => {
+    setAssignments(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const assign = (taskId, memberId) => {
+    persist({ ...assignments, [taskId]: memberId });
+  };
+
+  const unassign = (taskId) => {
+    const next = { ...assignments };
+    delete next[taskId];
+    persist(next);
+  };
+
+  // ── Drag handlers ───────────────────────────────────────────────────────────
+  const handleDragStart = (e, taskId) => {
+    setDraggingId(taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', taskId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverCol(null);
+  };
+
+  const handleDragOver = (e, colId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverCol(colId);
+  };
+
+  const handleDragLeave = () => setDragOverCol(null);
+
+  const handleDrop = (e, colId) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData('text/plain') || draggingId;
+    if (!taskId) return;
+    if (colId === 'pool') unassign(taskId);
+    else assign(taskId, colId);
+    setDraggingId(null);
+    setDragOverCol(null);
+  };
+
+  // ── Partição ────────────────────────────────────────────────────────────────
+  const poolTasks     = tasks.filter(t => !assignments[t.id]);
+  const augustoTasks  = tasks.filter(t => assignments[t.id] === 'augusto');
+  const joseTasks     = tasks.filter(t => assignments[t.id] === 'jose');
+
+  const totalAssigned = augustoTasks.length + joseTasks.length;
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:'1rem', marginTop:4 }}>
+
+      {/* ── Header da seção ── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
+        <div>
+          <h2 style={{ fontSize:'1rem', fontWeight:700, color:'var(--color-text)', display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{
+              width:28, height:28,
+              background:'linear-gradient(135deg,rgba(59,130,246,0.2),rgba(168,85,247,0.2))',
+              border:'1px solid rgba(168,85,247,0.3)',
+              borderRadius:8, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:'0.875rem'
+            }}>👥</span>
+            Tarefas por Membro
+          </h2>
+          <p style={{ color:'var(--color-text-muted)', fontSize:'0.75rem', marginTop:2, paddingLeft:36 }}>
+            Arraste as tarefas para distribuir entre os membros
+          </p>
+        </div>
+        {totalAssigned > 0 && (
+          <button
+            onClick={() => persist({})}
+            style={{ ...btnSecStyle, fontSize:'0.75rem', padding:'4px 10px', color:'#ef4444', borderColor:'rgba(239,68,68,0.2)' }}
+          >
+            Limpar atribuições
+          </button>
+        )}
+      </div>
+
+      {/* ── Pool de tarefas não atribuídas ── */}
+      <div
+        onDragOver={(e) => handleDragOver(e, 'pool')}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, 'pool')}
+        style={{
+          background: dragOverCol === 'pool'
+            ? 'rgba(34,197,94,0.05)'
+            : 'var(--color-bg-card)',
+          border: `1px ${dragOverCol === 'pool' ? 'solid' : 'dashed'} ${dragOverCol === 'pool' ? 'rgba(34,197,94,0.4)' : 'var(--color-border)'}`,
+          borderRadius:12, padding:'0.875rem 1rem',
+          transition:'all 0.2s',
+          minHeight: 56,
+        }}
+      >
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom: poolTasks.length > 0 ? 10 : 0 }}>
+          <span style={{ fontSize:'0.6875rem', fontWeight:700, color:'var(--color-text-muted)', letterSpacing:'1px', textTransform:'uppercase' }}>
+            📋 Fila · {poolTasks.length} {poolTasks.length === 1 ? 'tarefa' : 'tarefas'}
+          </span>
+          {dragOverCol === 'pool' && (
+            <span style={{ fontSize:'0.6875rem', color:'var(--color-green)', fontWeight:700 }}>← Solte aqui para remover atribuição</span>
+          )}
+        </div>
+
+        {poolTasks.length === 0 ? (
+          <div style={{ textAlign:'center', color:'var(--color-text-muted)', fontSize:'0.8125rem', padding:'0.5rem 0' }}>
+            {tasks.length === 0 ? 'Nenhuma tarefa cadastrada ainda' : '✓ Todas as tarefas foram atribuídas'}
+          </div>
+        ) : (
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+            {poolTasks.map(task => (
+              <KanbanCard
+                key={task.id}
+                task={task}
+                isDragging={draggingId === task.id}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── Colunas dos membros ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.875rem' }}>
+        {MEMBERS.map(member => {
+          const memberTasks = member.id === 'augusto' ? augustoTasks : joseTasks;
+          const isOver      = dragOverCol === member.id;
+          const doneTasks   = memberTasks.filter(t => t.completed).length;
+
+          return (
+            <div key={member.id}
+              onDragOver={(e) => handleDragOver(e, member.id)}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, member.id)}
+              style={{
+                background: isOver ? member.colorBg : 'var(--color-bg-card)',
+                border: `1px solid ${isOver ? member.colorBorderHover : member.colorBorder}`,
+                borderRadius:14,
+                overflow:'hidden',
+                transition:'all 0.2s',
+                boxShadow: isOver ? `0 0 20px ${member.colorGlow}` : 'none',
+                minHeight:180,
+              }}
+            >
+              {/* Cabeçalho da coluna */}
+              <div style={{
+                padding:'0.875rem 1.125rem',
+                borderBottom:`1px solid ${isOver ? member.colorBorderHover : member.colorBorder}`,
+                background: isOver
+                  ? `linear-gradient(135deg, ${member.colorBg}, transparent)`
+                  : `linear-gradient(135deg, ${member.colorBg}, transparent)`,
+                display:'flex', alignItems:'center', gap:10,
+                transition:'all 0.2s',
+              }}>
+                {/* Avatar */}
+                <div style={{
+                  width:32, height:32, borderRadius:10,
+                  background: member.gradient,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0,
+                  boxShadow:`0 2px 8px ${member.colorGlow}`,
+                  fontSize: member.initial.length > 1 ? '0.625rem' : '0.8125rem',
+                  fontWeight:800, color:'#fff',
+                  letterSpacing:'-0.5px',
+                }}>
+                  {member.initial}
+                </div>
+
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:'0.875rem', fontWeight:700, color: member.color }}>
+                    {member.name}
+                  </div>
+                  <div style={{ fontSize:'0.6875rem', color:'var(--color-text-muted)', marginTop:1 }}>
+                    {memberTasks.length === 0
+                      ? 'Sem tarefas atribuídas'
+                      : `${memberTasks.length} tarefa${memberTasks.length > 1 ? 's' : ''} · ${doneTasks} concluída${doneTasks !== 1 ? 's' : ''}`
+                    }
+                  </div>
+                </div>
+
+                {/* Badge de progresso */}
+                {memberTasks.length > 0 && (
+                  <div style={{
+                    fontSize:'0.6875rem', fontWeight:700,
+                    padding:'3px 9px', borderRadius:99,
+                    background: doneTasks === memberTasks.length ? member.color + '22' : 'var(--color-bg-elevated)',
+                    color: doneTasks === memberTasks.length ? member.color : 'var(--color-text-muted)',
+                    border: `1px solid ${doneTasks === memberTasks.length ? member.color + '44' : 'var(--color-border)'}`,
+                    transition:'all 0.3s',
+                  }}>
+                    {doneTasks}/{memberTasks.length}
+                  </div>
+                )}
+              </div>
+
+              {/* Barra de progresso fina */}
+              {memberTasks.length > 0 && (
+                <div style={{ height:2, background:'var(--color-bg-elevated)' }}>
+                  <div style={{
+                    height:'100%',
+                    width:`${(doneTasks / memberTasks.length) * 100}%`,
+                    background: member.color,
+                    transition:'width 0.5s ease',
+                    boxShadow: doneTasks === memberTasks.length ? `0 0 6px ${member.color}` : 'none',
+                  }}/>
+                </div>
+              )}
+
+              {/* Lista de tarefas */}
+              <div style={{ padding:'0.75rem', display:'flex', flexDirection:'column', gap:6, minHeight:100 }}>
+                {isOver && memberTasks.length === 0 && (
+                  <div style={{
+                    border:`2px dashed ${member.colorBorderHover}`,
+                    borderRadius:10, padding:'1rem',
+                    textAlign:'center', color:member.color,
+                    fontSize:'0.8125rem', fontWeight:600,
+                    background: member.colorBg,
+                    animation:'pulse-drop 1s infinite',
+                  }}>
+                    ↓ Solte aqui
+                  </div>
+                )}
+                {memberTasks.length === 0 && !isOver && (
+                  <div style={{
+                    border:`1px dashed ${member.colorBorder}`,
+                    borderRadius:10, padding:'1.25rem 1rem',
+                    textAlign:'center', color:'var(--color-text-muted)',
+                    fontSize:'0.8125rem',
+                  }}>
+                    Arraste tarefas para cá
+                  </div>
+                )}
+                {memberTasks.map(task => (
+                  <KanbanCard
+                    key={task.id}
+                    task={task}
+                    member={member}
+                    isDragging={draggingId === task.id}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    onUnassign={() => unassign(task.id)}
+                  />
+                ))}
+                {isOver && memberTasks.length > 0 && (
+                  <div style={{
+                    border:`2px dashed ${member.colorBorderHover}`,
+                    borderRadius:10, padding:'0.625rem',
+                    textAlign:'center', color:member.color,
+                    fontSize:'0.75rem', fontWeight:600,
+                    background: member.colorBg,
+                  }}>
+                    ↓ Adicionar aqui
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <style>{`
+        @keyframes pulse-drop {
+          0%,100% { opacity:1; }
+          50%      { opacity:0.7; }
+        }
+        @keyframes card-in {
+          from { opacity:0; transform:translateY(-4px) scale(0.98); }
+          to   { opacity:1; transform:translateY(0)  scale(1);    }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Card arrastável do Kanban ─────────────────────────────────────────────────
+function KanbanCard({ task, member, isDragging, onDragStart, onDragEnd, onUnassign }) {
+  const [hover, setHover] = useState(false);
+  const color = projectColor(task.project);
+  const done  = task.completed;
+
+  const freqLabel = {
+    daily: 'diária', weekly: 'semanal', continuous: 'contínua', custom: `${task.custom_interval_days}d`
+  }[task.frequency] || task.frequency;
+
+  return (
+    <div
+      draggable
+      onDragStart={(e) => onDragStart(e, task.id)}
+      onDragEnd={onDragEnd}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: done
+          ? 'var(--color-bg-elevated)'
+          : (member ? `${member.colorBg}` : 'var(--color-bg-elevated)'),
+        border: `1px solid ${done
+          ? 'var(--color-border)'
+          : (member ? member.colorBorder : 'var(--color-border-hover)')}`,
+        borderRadius:10,
+        padding:'0.625rem 0.75rem',
+        cursor:'grab',
+        opacity: isDragging ? 0.4 : 1,
+        transition:'all 0.15s',
+        transform: hover && !isDragging ? 'translateY(-1px)' : 'none',
+        boxShadow: hover && !isDragging
+          ? (member ? `0 4px 12px ${member.colorGlow}` : '0 4px 12px rgba(0,0,0,0.3)')
+          : 'none',
+        animation: 'card-in 0.2s ease-out',
+        userSelect: 'none',
+        position: 'relative',
+      }}
+    >
+      <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
+        {/* Grip + check status */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4, paddingTop:2, flexShrink:0 }}>
+          <div style={{ color:'var(--color-text-muted)', opacity: hover ? 1 : 0.4, transition:'opacity 0.15s' }}>
+            <IconDrag />
+          </div>
+          <div style={{
+            width:12, height:12, borderRadius:3,
+            background: done ? color : 'transparent',
+            border: done ? 'none' : `1.5px solid ${color}88`,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            color:'#000', fontSize:'0.5rem', flexShrink:0,
+          }}>
+            {done && '✓'}
+          </div>
+        </div>
+
+        {/* Conteúdo */}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{
+            fontSize:'0.8125rem', fontWeight:600,
+            color: done ? 'var(--color-text-muted)' : 'var(--color-text)',
+            textDecoration: done ? 'line-through' : 'none',
+            lineHeight:1.3,
+            marginBottom:4,
+          }}>
+            {task.title}
+          </div>
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap', alignItems:'center' }}>
+            <Tag color={color}>{task.project}</Tag>
+            <Tag color="#6b7280">{freqLabel}</Tag>
+            {task.target_count > 1 && (
+              <Tag color="#6b7280">{task.current_count || 0}/{task.target_count}</Tag>
+            )}
+          </div>
+        </div>
+
+        {/* Botão de remover atribuição */}
+        {onUnassign && hover && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onUnassign(); }}
+            title="Remover da coluna"
+            style={{
+              background:'none', border:'none', cursor:'pointer',
+              color:'var(--color-text-muted)', padding:2,
+              display:'flex', alignItems:'center',
+              flexShrink:0,
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text-muted)'}
+          >
+            <IconClose />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Modal: Nova Tarefa ────────────────────────────────────────────────────────
 function NewTaskModal({ onClose, onCreate }) {
-  const [title,        setTitle]        = useState('');
-  const [project,      setProject]      = useState('Geral');
+  const [title,         setTitle]         = useState('');
+  const [project,       setProject]       = useState('Geral');
   const [customProject, setCustomProject] = useState('');
-  const [freq,         setFreq]         = useState('daily');
-  const [target,       setTarget]       = useState(1);
-  const [interval,     setInterval]     = useState(3);
-  const [loading,      setLoading]      = useState(false);
-  const [err,          setErr]          = useState('');
+  const [freq,          setFreq]          = useState('daily');
+  const [target,        setTarget]        = useState(1);
+  const [interval,      setInterval]      = useState(3);
+  const [loading,       setLoading]       = useState(false);
+  const [err,           setErr]           = useState('');
 
-  const freqInfo = FREQ_OPTIONS.find(f => f.value === freq) || FREQ_OPTIONS[0];
+  const freqInfo     = FREQ_OPTIONS.find(f => f.value === freq) || FREQ_OPTIONS[0];
   const finalProject = project === '__custom__' ? customProject : project;
 
   const handleSubmit = async () => {
@@ -267,7 +686,6 @@ function NewTaskModal({ onClose, onCreate }) {
         borderRadius:14, padding:'1.75rem', width:440, maxWidth:'92vw',
         maxHeight:'90vh', overflowY:'auto', position:'relative'
       }}>
-        {/* Header */}
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.5rem' }}>
           <div>
             <h2 style={{ fontSize:'1.125rem', fontWeight:700, color:'var(--color-text)' }}>Nova Tarefa</h2>
@@ -280,7 +698,6 @@ function NewTaskModal({ onClose, onCreate }) {
 
         <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
 
-          {/* Título */}
           <Field label="Título da tarefa *">
             <input
               className="input" value={title} onChange={e => setTitle(e.target.value)}
@@ -290,7 +707,6 @@ function NewTaskModal({ onClose, onCreate }) {
             />
           </Field>
 
-          {/* Projeto */}
           <Field label="Projeto">
             <select className="input" value={project} onChange={e => setProject(e.target.value)}>
               {PROJECTS.map(p => <option key={p} value={p}>{p}</option>)}
@@ -304,7 +720,6 @@ function NewTaskModal({ onClose, onCreate }) {
             )}
           </Field>
 
-          {/* Frequência */}
           <Field label="Tipo / Frequência">
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
               {FREQ_OPTIONS.map(f => (
@@ -323,7 +738,6 @@ function NewTaskModal({ onClose, onCreate }) {
             </div>
           </Field>
 
-          {/* Intervalo customizado */}
           {freq === 'custom' && (
             <Field label="A cada quantos dias?">
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -335,7 +749,6 @@ function NewTaskModal({ onClose, onCreate }) {
             </Field>
           )}
 
-          {/* Meta numérica */}
           {(freq === 'weekly' || freq === 'continuous') && (
             <Field label={freq === 'weekly' ? 'Meta semanal (quantidade)' : 'Meta total'}>
               <div style={{ display:'flex', alignItems:'center', gap:10 }}>
@@ -349,7 +762,6 @@ function NewTaskModal({ onClose, onCreate }) {
             </Field>
           )}
 
-          {/* Preview */}
           <div style={{
             background:'var(--color-bg-elevated)', border:'1px solid var(--color-border)',
             borderRadius:8, padding:'0.875rem 1rem', fontSize:'0.8125rem'
@@ -374,7 +786,6 @@ function NewTaskModal({ onClose, onCreate }) {
 
           {err && <div style={{ color:'#ef4444', fontSize:'0.8125rem', padding:'8px 12px', background:'rgba(239,68,68,0.08)', borderRadius:6 }}>{err}</div>}
 
-          {/* Ações */}
           <div style={{ display:'flex', gap:8, marginTop:4 }}>
             <button onClick={onClose} style={{ flex:1, padding:'10px', background:'transparent', border:'1px solid var(--color-border)', color:'var(--color-text)', borderRadius:8, cursor:'pointer', fontWeight:600 }}>
               Cancelar
@@ -407,7 +818,7 @@ function Tag({ color, children }) {
 }
 
 function SummaryBadge({ label, done, total, color }) {
-  const pct = total > 0 ? (done / total) * 100 : 0;
+  const pct    = total > 0 ? (done / total) * 100 : 0;
   const allDone = done === total && total > 0;
   return (
     <div style={{ background:'var(--color-bg-card)', border:`1px solid ${allDone ? color+'44' : 'var(--color-border)'}`, borderRadius:10, padding:'1rem 1.25rem', transition:'border-color 0.3s' }}>
